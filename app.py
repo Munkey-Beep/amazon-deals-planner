@@ -31,6 +31,12 @@ if SUPABASE_URL and SUPABASE_KEY:
         from supabase import create_client
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         print("  Supabase connected")
+        # Auto-create the uploads bucket if it doesn't exist
+        try:
+            supabase.storage.create_bucket("uploads", options={"public": False})
+            print("  Created 'uploads' storage bucket")
+        except Exception:
+            pass  # Bucket already exists — that's fine
     except Exception as e:
         print(f"  Supabase not available: {e}")
 
