@@ -533,7 +533,7 @@ def create_workbook(brand_name, products, fees_map):
 
     # Title
     ws4.merge_cells("A1:J1")
-    title = ws4.cell(1, 1, f"🧮  DEAL CALCULATOR — All 13 Promotion Types")
+    title = ws4.cell(1, 1, f"🧮  DEAL CALCULATOR — All 13 Promotion Types  (v2 – fixed)")
     title.font = Font(name=FONT_NAME, bold=True, color=WHT, size=13)
     title.fill = fill(NAVY)
     title.alignment = Alignment(horizontal="center", vertical="center")
