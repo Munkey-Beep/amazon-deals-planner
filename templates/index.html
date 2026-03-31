@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Deals Planner - Free Tool for FBA Sellers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- HERO -->
+    <header class="hero">
+        <nav class="nav">
+            <div class="logo">Amazon Deals Planner</div>
+            <a href="#tool" class="nav-cta">Get Started Free</a>
+        </nav>
+        <div class="hero-content">
+            <h1>Plan Your Amazon Deals<br><span class="gradient-text">Like a Pro</span></h1>
+            <p class="hero-sub">Upload your inventory and fee data. Get a complete deals planner with all 13 promotion types, fee calculations, and profit projections — in seconds.</p>
+            <a href="#tool" class="btn btn-primary btn-lg">Generate My Planner &darr;</a>
+            <div class="trust-badges">
+                <span>Free forever</span>
+                <span>No credit card</span>
+                <span>All 13 deal types</span>
+                <span>Instant download</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h3>Upload Your Data</h3>
+                <p>Export your Manage Inventory and Fee Preview CSVs from Seller Central</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h3>We Crunch the Numbers</h3>
+                <p>Upfront fees, variable fees, COGS, FBA costs — all calculated automatically</p>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h3>Download Your Planner</h3>
+                <p>Get a professional Excel workbook with 6 sheets of actionable deal planning</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <h2>What You Get</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#128202;</div>
+                <h3>Products Dashboard</h3>
+                <p>Full inventory overview with prices, stock levels, and deal eligibility checks</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#129518;</div>
+                <h3>Deal Calculator</h3>
+                <p>Compare all 13 Amazon promotion types side-by-side for any product</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128197;</div>
+                <h3>Deals Planner</h3>
+                <p>Plan all SKUs at once with correct fee deductions and net profit calculations</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128176;</div>
+                <h3>Correct Fee Math</h3>
+                <p>Upfront fee deducted once from total sales. Variable fee per unit sold. No more guessing.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128293;</div>
+                <h3>Peak Calendar</h3>
+                <p>Plan around Prime Day, BFCM, and other peak events with fee breakdowns</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#9889;</div>
+                <h3>Any Brand</h3>
+                <p>Works for any Amazon FBA brand. Auto-detects product categories from your data.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- TOOL FORM -->
+    <section id="tool" class="tool-section">
+        <div class="tool-container">
+            <h2>Generate Your Free Planner</h2>
+            <p class="tool-sub">Fill in your info and upload your Amazon CSV files</p>
+
+            <form id="plannerForm" class="planner-form" enctype="multipart/form-data">
+                <!-- Lead Info -->
+                <div class="form-section">
+                    <h3>Your Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="brand">Brand Name *</label>
+                            <input type="text" id="brand" name="brand" placeholder="e.g., Grillbot, Wicked" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="store_url">Amazon Store URL</label>
+                            <input type="text" id="store_url" name="store_url" placeholder="amazon.com/stores/yourbrand">
+                        </div>
+                        <div class="form-group">
+                            <label for="marketplace">Marketplace *</label>
+                            <select id="marketplace" name="marketplace" required>
+                                <option value="US">United States (US)</option>
+                                <option value="CA">Canada (CA)</option>
+                                <option value="UK">United Kingdom (UK)</option>
+                                <option value="DE">Germany (DE)</option>
+                                <option value="FR">France (FR)</option>
+                                <option value="IT">Italy (IT)</option>
+                                <option value="ES">Spain (ES)</option>
+                                <option value="JP">Japan (JP)</option>
+                                <option value="AU">Australia (AU)</option>
+                                <option value="MX">Mexico (MX)</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="num_skus">Number of Active SKUs</label>
+                            <select id="num_skus" name="num_skus">
+                                <option value="1-10">1-10</option>
+                                <option value="11-50" selected>11-50</option>
+                                <option value="51-200">51-200</option>
+                                <option value="200+">200+</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Uploads -->
+                <div class="form-section">
+                    <h3>Upload Your Amazon Data</h3>
+                    <div class="upload-grid">
+                        <div class="upload-box" id="inventoryBox">
+                            <div class="upload-icon">&#128203;</div>
+                            <h4>Manage Inventory CSV *</h4>
+                            <p>Seller Central &rarr; Inventory &rarr; Manage Inventory &rarr; Download</p>
+                            <input type="file" id="inventory" name="inventory" accept=".csv,.txt" required>
+                            <label for="inventory" class="upload-btn">Choose File</label>
+                            <span class="file-name" id="inventoryName">No file selected</span>
+                        </div>
+                        <div class="upload-box" id="feesBox">
+                            <div class="upload-icon">&#128176;</div>
+                            <h4>Fee Preview CSV *</h4>
+                            <p>Seller Central &rarr; Reports &rarr; Fee Preview &rarr; Download</p>
+                            <input type="file" id="fees" name="fees" accept=".csv,.txt" required>
+                            <label for="fees" class="upload-btn">Choose File</label>
+                            <span class="file-name" id="feesName">No file selected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
+                    <span class="btn-text">Generate My Deals Planner</span>
+                    <span class="btn-loading" style="display:none">
+                        <span class="spinner"></span> Generating...
+                    </span>
+                </button>
+
+                <p class="privacy-note">Your data is used only to generate your planner. We never share or sell your information.</p>
+            </form>
+
+            <!-- Status -->
+            <div id="status" class="status" style="display:none"></div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-grid">
+            <div class="faq-item">
+                <h4>Is this really free?</h4>
+                <p>Yes, completely free. No hidden fees, no premium tier, no credit card required.</p>
+            </div>
+            <div class="faq-item">
+                <h4>What CSV files do I need?</h4>
+                <p>Two exports from Seller Central: your Manage Inventory report and your Fee Preview report. Both are standard Amazon exports.</p>
+            </div>
+            <div class="faq-item">
+                <h4>Does it work for any brand?</h4>
+                <p>Yes. The tool auto-detects your product categories and works with any Amazon FBA brand, any marketplace.</p>
+            </div>
+            <div class="faq-item">
+                <h4>How are fees calculated?</h4>
+                <p>Upfront fees are charged once per deal period and deducted from total sales. Variable fees are charged per unit sold. We support all 13 Amazon promotion types.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>Amazon Deals Planner &mdash; Free tool for Amazon FBA sellers</p>
+        <p class="footer-small">Not affiliated with Amazon. Amazon is a trademark of Amazon.com, Inc.</p>
+    </footer>
+
+    <script>
+        // File name display
+        document.getElementById('inventory').addEventListener('change', function() {
+            document.getElementById('inventoryName').textContent = this.files[0]?.name || 'No file selected';
+            if (this.files[0]) document.getElementById('inventoryBox').classList.add('has-file');
+        });
+        document.getElementById('fees').addEventListener('change', function() {
+            document.getElementById('feesName').textContent = this.files[0]?.name || 'No file selected';
+            if (this.files[0]) document.getElementById('feesBox').classList.add('has-file');
+        });
+
+        // Form submit
+        document.getElementById('plannerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('status');
+            const btnText = btn.querySelector('.btn-text');
+            const btnLoad = btn.querySelector('.btn-loading');
+
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoad.style.display = 'inline-flex';
+            status.style.display = 'none';
+
+            try {
+                const formData = new FormData(document.getElementById('plannerForm'));
+
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const brand = document.getElementById('brand').value;
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${brand}_Deals_Planner.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+
+                    status.className = 'status success';
+                    status.innerHTML = 'Your planner has been downloaded! Check your Downloads folder.';
+                    status.style.display = 'block';
+                } else {
+                    const error = await response.text();
+                    status.className = 'status error';
+                    status.innerHTML = 'Error: ' + error;
+                    status.style.display = 'block';
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = 'Network error. Please try again.';
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoad.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
