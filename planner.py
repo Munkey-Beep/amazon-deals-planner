@@ -785,8 +785,8 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 6).fill = fill(bg); ws5.cell(r, 6).border = bdr()
         ws5.cell(r, 6).font = Font(bold=True, size=9); ws5.cell(r, 6).alignment = Alignment(horizontal="center")
 
-        # Discount % (per-product override, default to global)
-        ws5.cell(r, 7, f"=$B$4")
+        # Discount % (per-product override, default to global discount value in F4)
+        ws5.cell(r, 7, f"=$F$4")
         ws5.cell(r, 7).number_format = "0.0%"; ws5.cell(r, 7).fill = fill(YEL); ws5.cell(r, 7).border = bdr()
         ws5.cell(r, 7).alignment = Alignment(horizontal="right"); ws5.cell(r, 7).font = Font(bold=True, size=10)
 
@@ -806,7 +806,7 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 10).alignment = Alignment(horizontal="right")
 
         # Upfront fee
-        upfront_f = (f'=IF($B$4="Non-Peak",$H$4*$I$4,IF($D$4="Lightning Deal",500,IF($D$4="Best Deal",1000,'
+        upfront_f = (f'=IF($B$4="Non-Peak",$H$4*70,IF($D$4="Lightning Deal",500,IF($D$4="Best Deal",1000,'
                     f'IF($D$4="Coupon",5,IF($D$4="Prime Exclusive",245,0)))))')
         ws5.cell(r, 11, upfront_f)
         ws5.cell(r, 11).number_format = "$#,##0.00"; ws5.cell(r, 11).fill = fill(LIGHT_ORANGE); ws5.cell(r, 11).border = bdr()
@@ -870,33 +870,39 @@ def create_workbook(brand_name, products, fees_map):
         c.alignment = Alignment(horizontal="center", wrap_text=True)
     ws6.row_dimensions[3].height = 28
 
-    # Generic peak events (user can customize)
+    # Generic peak events: (event, dates, bd_fee, ld_fee, cpn_fee, min_disc, notes, opp)
+    # Fee values stored as numbers where possible; mixed text (e.g. "$5+2.5%") kept as text
     events_generic = [
-        ("Prime Day", "~July (estimated)", "$1,000", "$500", "$5+2.5%", "15%",
+        ("Prime Day",          "~July (estimated)",    1000, 500, "$5+2.5%", 0.15,
          "Submit 4+ weeks early. Strong impulse buys. Best Deals for sustained visibility.",
          "🔥 HIGH — Peak summer shopping event."),
-        ("Black Friday/BFCM", "~Late November", "$1,000", "$500", "$245", "15%",
+        ("Black Friday/BFCM",  "~Late November",       1000, 500, 245,       0.15,
          "Submit 6+ weeks early. Biggest traffic day. Combine Best Deal + Coupon + PEPDP.",
          "🔥 HIGHEST — Top gift-giving event."),
-        ("Prime Big Deal Days", "~October (estimated)", "$1,000", "$500", "$5+2.5%", "15%",
+        ("Prime Big Deal Days","~October (estimated)", 1000, 500, "$5+2.5%", 0.15,
          "Submit 4+ weeks ahead. Pre-holiday mindset. Good for multi-packs as gifts.",
          "🟡 MEDIUM — Pre-holiday shopping push."),
-        ("Cyber Monday", "~December 2", "$1,000", "$500", "$245", "15%",
+        ("Cyber Monday",       "~December 2",          1000, 500, 245,       0.15,
          "Span Best Deal across BFCM + Cyber Monday for single $1,000 fee. Layer coupons.",
          "🔥 HIGH — Online-focused shoppers."),
-        ("Non-Peak Best Deals", "Year-round", "$70/day", "$70/day", "$5+2.5%", "15%",
+        ("Non-Peak Best Deals","Year-round",          "$70/day", "$70/day", "$5+2.5%", 0.15,
          "Best ROI for margins. Run 7–14 day deals at $70/day. Volume drives profitability.",
          "🟡 MEDIUM — Consistent, predictable fee structure."),
     ]
 
+    # Number formats for each column: event, dates, bd_fee, ld_fee, cpn_fee, disc, notes, opp
+    cal_fmts = [None, None, "$#,##0", "$#,##0", "$#,##0", "0%", None, None]
+
     for idx, (evt, dates, bd_fee, ld_fee, cpn_fee, disc, notes, opp) in enumerate(events_generic):
         r = idx + 4
         bg = WHT if idx % 2 == 0 else ALT
-        for ci, val in enumerate([evt, dates, bd_fee, ld_fee, cpn_fee, disc, notes, opp], 1):
+        for ci, (val, fmt) in enumerate(zip([evt, dates, bd_fee, ld_fee, cpn_fee, disc, notes, opp], cal_fmts), 1):
             c = ws6.cell(r, ci, val)
             c.font = Font(name=FONT_NAME, size=9, bold=(ci in [1, 8]))
             c.fill = fill(bg); c.border = bdr()
             c.alignment = Alignment(horizontal="left" if ci in [1, 6, 7] else "center", wrap_text=True)
+            if fmt and isinstance(val, (int, float)):
+                c.number_format = fmt
         ws6.row_dimensions[r].height = 48
 
     set_col_widths(ws6, [24, 22, 12, 12, 14, 12, 46, 38])
