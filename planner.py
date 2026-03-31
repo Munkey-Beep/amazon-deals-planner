@@ -614,24 +614,26 @@ def create_workbook(brand_name, products, fees_map):
         c.alignment = Alignment(horizontal="center", wrap_text=True)
     ws4.row_dimensions[15].height = 28
 
-    # Promo data: (name, period, duration formula, upfront fee formula, variable fee formula)
+    # Promo data: (name, period, duration_text, upfront_fee, var_fee_expr)
+    # var_fee_expr: formula expression WITHOUT leading "=" (use # for current row)
+    # Variable fee is % of REVENUE (col G), NOT costs
     promos = [
-        ("Lightning Deal", "Non-Peak", "=TEXT(C12,\"0.0\")&\" days\"", "=C12*70", "=MIN(H#*0.01,2000)"),
-        ("Best Deal 3-day", "Non-Peak", "3 days", "210", "=MIN(H#*0.01,2000)"),
-        ("Best Deal 7-day", "Non-Peak", "7 days", "490", "=MIN(H#*0.01,2000)"),
-        ("Best Deal 14-day", "Non-Peak", "14 days", "980", "=MIN(H#*0.01,2000)"),
-        ("Lightning Deal", "Prime Day", "4–12 hrs", "500", "0"),
-        ("Best Deal", "Prime Day", "1–14 days", "1000", "0"),
-        ("Lightning Deal", "BFCM", "4–12 hrs", "500", "0"),
-        ("Best Deal", "BFCM", "1–14 days", "1000", "0"),
-        ("Lightning Deal", "Prime Big Deal Days", "4–12 hrs", "500", "0"),
-        ("Best Deal", "Prime Big Deal Days", "1–14 days", "1000", "0"),
-        ("Prime Exclusive", "BFCM", "Event", "245", "0"),
-        ("Coupon", "Any", "Any", "5", "=H#*0.025"),
-        ("Regular Discount", "Any", "Any", "0", "0"),
+        ("Lightning Deal", "Non-Peak", "=TEXT(C12,\"0.0\")&\" days\"", "=C12*70",  "MIN(G#*0.01,2000)"),
+        ("Best Deal 3-day", "Non-Peak", "3 days",   210,   "MIN(G#*0.01,2000)"),
+        ("Best Deal 7-day", "Non-Peak", "7 days",   490,   "MIN(G#*0.01,2000)"),
+        ("Best Deal 14-day","Non-Peak", "14 days",  980,   "MIN(G#*0.01,2000)"),
+        ("Lightning Deal",  "Prime Day","4-12 hrs",  500,   "0"),
+        ("Best Deal",       "Prime Day","1-14 days", 1000,  "0"),
+        ("Lightning Deal",  "BFCM",     "4-12 hrs",  500,   "0"),
+        ("Best Deal",       "BFCM",     "1-14 days", 1000,  "0"),
+        ("Lightning Deal",  "Prime Big Deal Days","4-12 hrs", 500, "0"),
+        ("Best Deal",       "Prime Big Deal Days","1-14 days",1000,"0"),
+        ("Prime Exclusive", "BFCM",     "Event",     245,   "0"),
+        ("Coupon",          "Any",      "Any",        5,    "G#*0.025"),
+        ("Regular Discount","Any",      "Any",        0,    "0"),
     ]
 
-    for idx, (ptype, period, dur, fee_up, fee_var) in enumerate(promos):
+    for idx, (ptype, period, dur, fee_up, fee_var_expr) in enumerate(promos):
         r = 16 + idx
         bg = ALT if idx % 2 == 0 else WHT
 
@@ -641,23 +643,29 @@ def create_workbook(brand_name, products, fees_map):
         ws4.cell(r, 2, period).fill = fill(bg); ws4.cell(r, 2).border = bdr()
         ws4.cell(r, 2).font = Font(name=FONT_NAME, size=10)
 
-        ws4.cell(r, 3, dur).fill = fill(bg); ws4.cell(r, 3).border = bdr()
+        # Duration: formula or plain text
+        ws4.cell(r, 3, dur)
+        ws4.cell(r, 3).fill = fill(bg); ws4.cell(r, 3).border = bdr()
         ws4.cell(r, 3).font = Font(name=FONT_NAME, size=9)
 
-        # Upfront fee
-        c = ws4.cell(r, 4, fee_up)
+        # Upfront fee: write as number (not string) or formula
+        if isinstance(fee_up, str) and fee_up.startswith("="):
+            ws4.cell(r, 4, fee_up)
+        else:
+            ws4.cell(r, 4, int(fee_up) if isinstance(fee_up, (int, float)) else fee_up)
+        c = ws4.cell(r, 4)
         c.number_format = "$#,##0.00"; c.fill = fill(bg); c.border = bdr()
         c.alignment = Alignment(horizontal="right")
 
-        # Variable fee % (as text)
-        var_pct = "1% cap $2k" if "MIN" in fee_var else ("2.5%" if "0.025" in fee_var else ("None" if "0" in fee_var else "1% cap $2k"))
+        # Variable fee % (display label)
+        var_pct = "1% cap $2k" if "MIN" in fee_var_expr else ("2.5%" if "0.025" in fee_var_expr else "None")
         ws4.cell(r, 5, var_pct).fill = fill(bg); ws4.cell(r, 5).border = bdr()
         ws4.cell(r, 5).font = Font(name=FONT_NAME, size=9)
         ws4.cell(r, 5).alignment = Alignment(horizontal="center")
 
-        # Total fee
-        fee_var_formula = fee_var.replace("#", str(r)) if "#" in fee_var else fee_var
-        c = ws4.cell(r, 6, f"=D{r}+{fee_var_formula}")
+        # Total fee = Upfront + Variable (clean formula, no double "=")
+        var_resolved = fee_var_expr.replace("#", str(r))
+        c = ws4.cell(r, 6, f"=D{r}+{var_resolved}")
         c.number_format = "$#,##0.00"; c.fill = fill(LIGHT_ORANGE); c.border = bdr()
         c.alignment = Alignment(horizontal="right"); c.font = Font(bold=True, size=10)
 

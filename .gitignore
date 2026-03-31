@@ -1,24 +1,7 @@
-# Python
 __pycache__/
 *.pyc
-
-# Virtual env
+.env
+leads_log.csv
+*.xlsx
 venv/
-.env
-
-# Secrets
-.env
-.env.*
-
-# Logs
-*.log
-
-# OS
-.DS_Store
-
-# IDE
-.vscode/
-.idea/
-
-# Uploads
-uploads/
+.venv/
