@@ -9,6 +9,7 @@ import re
 import io
 import tempfile
 import uuid
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -30,7 +31,14 @@ if SUPABASE_URL and SUPABASE_KEY:
     try:
         from supabase import create_client
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("  Supabase connected")
+        print(f"  Supabase client created (URL: {SUPABASE_URL[:40]}...)")
+        # Verify connection with a test read
+        try:
+            test = supabase.table("leads").select("id").limit(1).execute()
+            print(f"  Supabase leads table OK — connection verified")
+        except Exception as e:
+            print(f"  Supabase leads table check failed: {e}")
+            traceback.print_exc()
         # Auto-create the uploads bucket if it doesn't exist
         try:
             supabase.storage.create_bucket("uploads", options={"public": False})
@@ -39,6 +47,7 @@ if SUPABASE_URL and SUPABASE_KEY:
             pass  # Bucket already exists — that's fine
     except Exception as e:
         print(f"  Supabase not available: {e}")
+        traceback.print_exc()
 
 
 def save_lead(data):
@@ -51,15 +60,16 @@ def save_lead(data):
         "num_skus": data.get("num_skus", ""),
         "num_products": data.get("num_products", 0),
         "num_fees": data.get("num_fees", 0),
-        "created_at": datetime.utcnow().isoformat(),
+        # Let the database set created_at via DEFAULT NOW()
     }
 
     if supabase:
         try:
-            supabase.table("leads").insert(record).execute()
-            print(f"  Lead saved: {record['email']} ({record['brand']})")
+            result = supabase.table("leads").insert(record).execute()
+            print(f"  Lead saved: {record['email']} ({record['brand']}) — {result}")
         except Exception as e:
             print(f"  Failed to save lead: {e}")
+            traceback.print_exc()
     else:
         # Local fallback — append to CSV
         log_path = Path("leads_log.csv")
