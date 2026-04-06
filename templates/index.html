@@ -1,277 +1,969 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amazon Deals Planner - Free Tool for FBA Sellers</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazon Deals Planner — Free Deal Fee Calculator for FBA Sellers</title>
+  <meta name="description" content="Stop guessing your Amazon deal fees. Upload your Inventory + Fee Preview CSVs and get an instant, accurate deals planner with profit projections for every promotion type." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #FF9900;
+      --orange-dark: #e88b00;
+      --dark: #0F1111;
+      --dark2: #1a1e1e;
+      --card: #1e2424;
+      --border: #2e3535;
+      --text: #e8eaea;
+      --muted: #8a9494;
+      --white: #ffffff;
+      --green: #00c853;
+      --blue: #4da6ff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15,17,17,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: -0.3px;
+    }
+    .nav-logo span { color: var(--white); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-cta {
+      background: var(--orange);
+      color: var(--dark);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 8px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: var(--orange-dark); }
+    .nav-donate {
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .nav-donate:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 90px 24px 80px;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,153,0,0.15) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,153,0,0.1);
+      border: 1px solid rgba(255,153,0,0.3);
+      color: var(--orange);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+    .hero-badge::before { content: "✦"; font-size: 10px; }
+    h1 {
+      font-size: clamp(36px, 6vw, 68px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -2px;
+      color: var(--white);
+      max-width: 860px;
+      margin: 0 auto 20px;
+    }
+    h1 .accent { color: var(--orange); }
+    .hero-sub {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .btn-primary {
+      background: var(--orange);
+      color: var(--dark);
+      font-size: 16px;
+      font-weight: 800;
+      padding: 16px 36px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      padding: 16px 28px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .btn-ghost:hover { border-color: var(--orange); color: var(--orange); }
+    .trust-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .trust-item .check {
+      width: 18px; height: 18px;
+      background: rgba(0,200,83,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* ── PAIN SECTION ── */
+    .pain {
+      background: var(--dark2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 72px 24px;
+      text-align: center;
+    }
+    .pain-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 16px;
+    }
+    .pain h2 {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -1px;
+      max-width: 700px;
+      margin: 0 auto 20px;
+    }
+    .pain p {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 40px;
+    }
+    .pain-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .pain-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-align: left;
+    }
+    .pain-card .emoji { font-size: 24px; margin-bottom: 10px; display: block; }
+    .pain-card h4 { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+    .pain-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ── HOW IT WORKS ── */
+    .hiw { padding: 80px 24px; text-align: center; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .section-sub {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 52px;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px 24px;
+      text-align: left;
+    }
+    .step-num {
+      width: 40px; height: 40px;
+      background: var(--orange);
+      color: var(--dark);
+      font-size: 18px;
+      font-weight: 900;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .step h3 { font-size: 17px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── FEATURES ── */
+    .features {
+      background: var(--dark2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      text-align: left;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(255,153,0,0.4); }
+    .feature-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+    .feature-card h3 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--orange);
+      background: rgba(255,153,0,0.1);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    /* ── DEAL TYPES ── */
+    .deal-types { padding: 80px 24px; text-align: center; }
+    .deal-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto 32px;
+    }
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 100px;
+    }
+    .chip.highlight {
+      background: rgba(255,153,0,0.1);
+      border-color: rgba(255,153,0,0.4);
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* ── TOOL FORM ── */
+    .tool-section {
+      background: var(--dark2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+    .tool-container {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .tool-container h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .tool-sub { font-size: 16px; color: var(--muted); margin-bottom: 36px; }
+    .planner-form { text-align: left; }
+    .form-section {
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin-bottom: 20px;
+    }
+    .form-section h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    input[type="email"],
+    input[type="text"],
+    select {
+      background: var(--dark2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    input:focus, select:focus { border-color: var(--orange); }
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .upload-box {
+      background: var(--dark2);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 24px 18px;
+      text-align: center;
+      transition: border-color 0.15s;
+    }
+    .upload-box.has-file { border-color: var(--green); border-style: solid; }
+    .upload-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+    .upload-box h4 { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+    .upload-box p { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+    input[type="file"] { display: none; }
+    .upload-btn {
+      display: inline-block;
+      background: var(--orange);
+      color: var(--dark);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: background 0.15s;
+    }
+    .upload-btn:hover { background: var(--orange-dark); }
+    .file-name { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; word-break: break-all; }
+    .btn-submit {
+      width: 100%;
+      background: var(--orange);
+      color: var(--dark);
+      font-size: 16px;
+      font-weight: 800;
+      padding: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-submit:hover:not(:disabled) { background: var(--orange-dark); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: var(--dark);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .privacy-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .status.success { background: rgba(0,200,83,0.1); border: 1px solid rgba(0,200,83,0.3); color: #4cff8a; }
+    .status.error { background: rgba(255,60,60,0.1); border: 1px solid rgba(255,60,60,0.3); color: #ff8a8a; }
+
+    /* ── DONATE SECTION ── */
+    .donate-section {
+      padding: 72px 24px;
+      text-align: center;
+      background: radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255,153,0,0.07) 0%, transparent 70%);
+    }
+    .donate-card {
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 36px;
+    }
+    .donate-icon { font-size: 44px; margin-bottom: 16px; }
+    .donate-card h2 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+    .donate-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.7;
+    }
+    .btn-donate {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #003087;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 15px 36px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-donate:hover { background: #002070; transform: translateY(-1px); }
+    .paypal-logo { font-size: 19px; font-weight: 900; letter-spacing: -0.5px; }
+    .paypal-logo .pay { color: #009cde; }
+    .paypal-logo .pal { color: #012169; }
+    .donate-note { font-size: 12px; color: var(--muted); margin-top: 16px; }
+
+    /* ── CONTACT SECTION ── */
+    .contact-section {
+      background: var(--dark2);
+      border-top: 1px solid var(--border);
+      padding: 60px 24px;
+      text-align: center;
+    }
+    .contact-section h2 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+    .contact-section p {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .contact-email {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--orange);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .contact-email:hover { border-color: var(--orange); }
+
+    /* ── FAQ ── */
+    .faq {
+      border-top: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+    .faq-inner { max-width: 720px; margin: 0 auto; }
+    .faq h2 {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 800;
+      color: var(--white);
+      text-align: center;
+      letter-spacing: -1px;
+      margin-bottom: 48px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-item h4 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+    .faq-item p { font-size: 15px; color: var(--muted); line-height: 1.7; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 24px;
+      text-align: center;
+    }
+    footer p { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    footer a { color: var(--orange); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .hero { padding: 60px 20px 56px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .btn-primary, .btn-ghost { width: 100%; max-width: 320px; text-align: center; }
+      .trust-row { gap: 16px; }
+      .form-row { grid-template-columns: 1fr; }
+      .upload-grid { grid-template-columns: 1fr; }
+      .nav-donate { display: none; }
+      .donate-card { padding: 32px 20px; }
+    }
+  </style>
 </head>
 <body>
-    <!-- HERO -->
-    <header class="hero">
-        <nav class="nav">
-            <div class="logo">Amazon Deals Planner</div>
-            <a href="#tool" class="nav-cta">Get Started Free</a>
-        </nav>
-        <div class="hero-content">
-            <h1>Plan Your Amazon Deals<br><span class="gradient-text">Like a Pro</span></h1>
-            <p class="hero-sub">Upload your inventory and fee data. Get a complete deals planner with all 13 promotion types, fee calculations, and profit projections — in seconds.</p>
-            <a href="#tool" class="btn btn-primary btn-lg">Generate My Planner &darr;</a>
-            <div class="trust-badges">
-                <span>Free forever</span>
-                <span>No credit card</span>
-                <span>All 13 deal types</span>
-                <span>Instant download</span>
-            </div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Amazon<span> Deals Planner</span></div>
+  <div class="nav-right">
+    <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener" class="nav-donate">☕ Buy me a coffee</a>
+    <a href="#tool" class="nav-cta">Get It Free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Free Tool for Amazon FBA Sellers</div>
+  <h1>Stop Guessing Your<br><span class="accent">Amazon Deal Fees.</span></h1>
+  <p class="hero-sub">Upload your Inventory + Fee Preview CSVs and get an instant, accurate deals planner with correct fee math, profit projections, and a peak event calendar — for every promotion type.</p>
+  <div class="hero-actions">
+    <a href="#tool" class="btn-primary">Generate My Free Planner →</a>
+    <a href="#how-it-works" class="btn-ghost">See How It Works</a>
+  </div>
+  <div class="trust-row">
+    <div class="trust-item"><span class="check">✓</span> 100% Free</div>
+    <div class="trust-item"><span class="check">✓</span> No credit card</div>
+    <div class="trust-item"><span class="check">✓</span> Instant download</div>
+    <div class="trust-item"><span class="check">✓</span> All 13 deal types</div>
+    <div class="trust-item"><span class="check">✓</span> Any marketplace</div>
+  </div>
+</section>
+
+<!-- PAIN -->
+<section class="pain">
+  <p class="pain-label">The Problem</p>
+  <h2>Amazon deals are profitable — if you calculate the fees right.</h2>
+  <p>Most sellers run Lightning Deals and Best Deals without knowing their actual margins. The fee structure is complex, and one wrong number wipes out your profit.</p>
+  <div class="pain-cards">
+    <div class="pain-card">
+      <span class="emoji">😤</span>
+      <h4>Upfront fees eat into revenue</h4>
+      <p>Lightning Deals cost $500+ upfront. That's deducted from your total sales, not per unit. Most sellers get this wrong.</p>
+    </div>
+    <div class="pain-card">
+      <span class="emoji">📉</span>
+      <h4>Variable fees add up fast</h4>
+      <p>Every unit sold in a deal has an additional variable fee on top of your normal FBA fees. Easy to overlook, hard to recover.</p>
+    </div>
+    <div class="pain-card">
+      <span class="emoji">📅</span>
+      <h4>Peak events need planning</h4>
+      <p>Prime Day, BFCM, and other peak events have different fee structures. Planning last minute is leaving money on the table.</p>
+    </div>
+    <div class="pain-card">
+      <span class="emoji">🔢</span>
+      <h4>Spreadsheets take hours</h4>
+      <p>Building your own calculator means hours of manual work every time you have a new SKU lineup or deal cycle.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="hiw" id="how-it-works">
+  <p class="section-label">How It Works</p>
+  <h2 class="section-title">3 steps to your deals planner</h2>
+  <p class="section-sub">No account needed. No setup. Just your two standard Seller Central exports.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Export from Seller Central</h3>
+      <p>Download your <strong>Manage Inventory</strong> CSV and your <strong>Fee Preview</strong> CSV — both standard exports, takes 2 minutes.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Upload &amp; Generate</h3>
+      <p>Enter your brand name, upload the two files, and click generate. We do the rest — fee lookups, formula building, and calculations.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Download Your Planner</h3>
+      <p>You get a professional Excel workbook — ready to use, share with your team, or bring into your next deals planning meeting.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <p class="section-label">What's Inside</p>
+  <h2 class="section-title">6 sheets. Everything you need.</h2>
+  <p class="section-sub">Your planner is a complete Excel workbook built from your actual product and fee data.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3>Products Dashboard</h3>
+      <p>Full inventory overview with your actual prices, stock levels, COGS, and FBA fees pulled directly from your export files.</p>
+      <span class="feature-tag">Auto-populated</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🧮</span>
+      <h3>Deal Calculator</h3>
+      <p>Compare all 13 Amazon promotion types side-by-side for any single product. Change inputs and see profit update instantly.</p>
+      <span class="feature-tag">All 13 deal types</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📋</span>
+      <h3>Deals Planner</h3>
+      <p>Plan your entire SKU lineup at once. Correct upfront fee deduction (once per deal) plus per-unit variable fee math for every row.</p>
+      <span class="feature-tag">Accurate fee math</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📅</span>
+      <h3>Peak Event Calendar</h3>
+      <p>Plan around Prime Day, Black Friday, BFCM, and other peak events with fee breakdowns and deal window timelines.</p>
+      <span class="feature-tag">Seasonal planning</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">💰</span>
+      <h3>Correct Fee Structure</h3>
+      <p>Upfront fees are charged once and deducted from total deal revenue. Variable fees are calculated per unit. No more inflated cost estimates.</p>
+      <span class="feature-tag">No guesswork</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🌍</span>
+      <h3>Any Brand, Any Market</h3>
+      <p>Works with US, UK, CA, DE, JP, and 6 other marketplaces. Auto-detects product categories from your Seller Central data.</p>
+      <span class="feature-tag">Multi-marketplace</span>
+    </div>
+  </div>
+</section>
+
+<!-- DEAL TYPES -->
+<section class="deal-types">
+  <p class="section-label">Coverage</p>
+  <h2 class="section-title">All 13 Amazon promotion types — covered</h2>
+  <p class="section-sub" style="margin-bottom:36px;">The calculator handles every deal type Amazon offers, including Peak variants.</p>
+  <div class="deal-chips">
+    <div class="chip highlight">⚡ Lightning Deal</div>
+    <div class="chip highlight">🏷️ Best Deal</div>
+    <div class="chip highlight">✂️ Coupon</div>
+    <div class="chip highlight">🎯 Prime Exclusive Discount</div>
+    <div class="chip">Regular Discount</div>
+    <div class="chip">⚡ Peak Lightning Deal</div>
+    <div class="chip">🏷️ Peak Best Deal</div>
+    <div class="chip">✂️ Peak Coupon</div>
+    <div class="chip">🎯 Peak Prime Exclusive</div>
+    <div class="chip">Peak Regular Discount</div>
+    <div class="chip">Non-Peak</div>
+    <div class="chip">Custom</div>
+    <div class="chip">+ more</div>
+  </div>
+</section>
+
+<!-- TOOL FORM -->
+<section id="tool" class="tool-section">
+  <div class="tool-container">
+    <p class="section-label">Free Generator</p>
+    <h2>Generate Your Free Deals Planner</h2>
+    <p class="tool-sub">Fill in your info and upload your two Amazon CSV files — your Excel planner downloads instantly.</p>
+
+    <form id="plannerForm" class="planner-form" enctype="multipart/form-data">
+      <div class="form-section">
+        <h3>Your Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email Address *</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="brand">Brand Name *</label>
+            <input type="text" id="brand" name="brand" placeholder="e.g., Grillbot, Wicked" required />
+          </div>
         </div>
-    </header>
-
-    <!-- HOW IT WORKS -->
-    <section class="how-it-works">
-        <h2>How It Works</h2>
-        <div class="steps">
-            <div class="step">
-                <div class="step-num">1</div>
-                <h3>Upload Your Data</h3>
-                <p>Export your Manage Inventory and Fee Preview CSVs from Seller Central</p>
-            </div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <h3>We Crunch the Numbers</h3>
-                <p>Upfront fees, variable fees, COGS, FBA costs — all calculated automatically</p>
-            </div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <h3>Download Your Planner</h3>
-                <p>Get a professional Excel workbook with 6 sheets of actionable deal planning</p>
-            </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="store_url">Amazon Store URL</label>
+            <input type="text" id="store_url" name="store_url" placeholder="amazon.com/stores/yourbrand" />
+          </div>
+          <div class="form-group">
+            <label for="marketplace">Marketplace *</label>
+            <select id="marketplace" name="marketplace" required>
+              <option value="US">United States (US)</option>
+              <option value="CA">Canada (CA)</option>
+              <option value="UK">United Kingdom (UK)</option>
+              <option value="DE">Germany (DE)</option>
+              <option value="FR">France (FR)</option>
+              <option value="IT">Italy (IT)</option>
+              <option value="ES">Spain (ES)</option>
+              <option value="JP">Japan (JP)</option>
+              <option value="AU">Australia (AU)</option>
+              <option value="MX">Mexico (MX)</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
         </div>
-    </section>
-
-    <!-- FEATURES -->
-    <section class="features">
-        <h2>What You Get</h2>
-        <div class="feature-grid">
-            <div class="feature-card">
-                <div class="feature-icon">&#128202;</div>
-                <h3>Products Dashboard</h3>
-                <p>Full inventory overview with prices, stock levels, and deal eligibility checks</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#129518;</div>
-                <h3>Deal Calculator</h3>
-                <p>Compare all 13 Amazon promotion types side-by-side for any product</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#128197;</div>
-                <h3>Deals Planner</h3>
-                <p>Plan all SKUs at once with correct fee deductions and net profit calculations</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#128176;</div>
-                <h3>Correct Fee Math</h3>
-                <p>Upfront fee deducted once from total sales. Variable fee per unit sold. No more guessing.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#128293;</div>
-                <h3>Peak Calendar</h3>
-                <p>Plan around Prime Day, BFCM, and other peak events with fee breakdowns</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#9889;</div>
-                <h3>Any Brand</h3>
-                <p>Works for any Amazon FBA brand. Auto-detects product categories from your data.</p>
-            </div>
+        <div class="form-row" style="grid-template-columns: 1fr;">
+          <div class="form-group">
+            <label for="num_skus">Number of Active SKUs</label>
+            <select id="num_skus" name="num_skus">
+              <option value="1-10">1–10</option>
+              <option value="11-50" selected>11–50</option>
+              <option value="51-200">51–200</option>
+              <option value="200+">200+</option>
+            </select>
+          </div>
         </div>
-    </section>
+      </div>
 
-    <!-- TOOL FORM -->
-    <section id="tool" class="tool-section">
-        <div class="tool-container">
-            <h2>Generate Your Free Planner</h2>
-            <p class="tool-sub">Fill in your info and upload your Amazon CSV files</p>
-
-            <form id="plannerForm" class="planner-form" enctype="multipart/form-data">
-                <!-- Lead Info -->
-                <div class="form-section">
-                    <h3>Your Information</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="email">Email Address *</label>
-                            <input type="email" id="email" name="email" placeholder="you@example.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="brand">Brand Name *</label>
-                            <input type="text" id="brand" name="brand" placeholder="e.g., Grillbot, Wicked" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="store_url">Amazon Store URL</label>
-                            <input type="text" id="store_url" name="store_url" placeholder="amazon.com/stores/yourbrand">
-                        </div>
-                        <div class="form-group">
-                            <label for="marketplace">Marketplace *</label>
-                            <select id="marketplace" name="marketplace" required>
-                                <option value="US">United States (US)</option>
-                                <option value="CA">Canada (CA)</option>
-                                <option value="UK">United Kingdom (UK)</option>
-                                <option value="DE">Germany (DE)</option>
-                                <option value="FR">France (FR)</option>
-                                <option value="IT">Italy (IT)</option>
-                                <option value="ES">Spain (ES)</option>
-                                <option value="JP">Japan (JP)</option>
-                                <option value="AU">Australia (AU)</option>
-                                <option value="MX">Mexico (MX)</option>
-                                <option value="OTHER">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="num_skus">Number of Active SKUs</label>
-                            <select id="num_skus" name="num_skus">
-                                <option value="1-10">1-10</option>
-                                <option value="11-50" selected>11-50</option>
-                                <option value="51-200">51-200</option>
-                                <option value="200+">200+</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- File Uploads -->
-                <div class="form-section">
-                    <h3>Upload Your Amazon Data</h3>
-                    <div class="upload-grid">
-                        <div class="upload-box" id="inventoryBox">
-                            <div class="upload-icon">&#128203;</div>
-                            <h4>Manage Inventory CSV *</h4>
-                            <p>Seller Central &rarr; Inventory &rarr; Manage Inventory &rarr; Download</p>
-                            <input type="file" id="inventory" name="inventory" accept=".csv,.txt" required>
-                            <label for="inventory" class="upload-btn">Choose File</label>
-                            <span class="file-name" id="inventoryName">No file selected</span>
-                        </div>
-                        <div class="upload-box" id="feesBox">
-                            <div class="upload-icon">&#128176;</div>
-                            <h4>Fee Preview CSV *</h4>
-                            <p>Seller Central &rarr; Reports &rarr; Fee Preview &rarr; Download</p>
-                            <input type="file" id="fees" name="fees" accept=".csv,.txt" required>
-                            <label for="fees" class="upload-btn">Choose File</label>
-                            <span class="file-name" id="feesName">No file selected</span>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
-                    <span class="btn-text">Generate My Deals Planner</span>
-                    <span class="btn-loading" style="display:none">
-                        <span class="spinner"></span> Generating...
-                    </span>
-                </button>
-
-                <p class="privacy-note">Your data is used only to generate your planner. We never share or sell your information.</p>
-            </form>
-
-            <!-- Status -->
-            <div id="status" class="status" style="display:none"></div>
+      <div class="form-section">
+        <h3>Upload Your Amazon Data</h3>
+        <div class="upload-grid">
+          <div class="upload-box" id="inventoryBox">
+            <div class="upload-icon">📋</div>
+            <h4>Manage Inventory CSV *</h4>
+            <p>Seller Central → Inventory → Manage Inventory → Download</p>
+            <input type="file" id="inventory" name="inventory" accept=".csv,.txt" required />
+            <label for="inventory" class="upload-btn">Choose File</label>
+            <span class="file-name" id="inventoryName">No file selected</span>
+          </div>
+          <div class="upload-box" id="feesBox">
+            <div class="upload-icon">💰</div>
+            <h4>Fee Preview CSV *</h4>
+            <p>Seller Central → Reports → Fee Preview → Download</p>
+            <input type="file" id="fees" name="fees" accept=".csv,.txt" required />
+            <label for="fees" class="upload-btn">Choose File</label>
+            <span class="file-name" id="feesName">No file selected</span>
+          </div>
         </div>
-    </section>
+      </div>
 
-    <!-- FAQ -->
-    <section class="faq">
-        <h2>Frequently Asked Questions</h2>
-        <div class="faq-grid">
-            <div class="faq-item">
-                <h4>Is this really free?</h4>
-                <p>Yes, completely free. No hidden fees, no premium tier, no credit card required.</p>
-            </div>
-            <div class="faq-item">
-                <h4>What CSV files do I need?</h4>
-                <p>Two exports from Seller Central: your Manage Inventory report and your Fee Preview report. Both are standard Amazon exports.</p>
-            </div>
-            <div class="faq-item">
-                <h4>Does it work for any brand?</h4>
-                <p>Yes. The tool auto-detects your product categories and works with any Amazon FBA brand, any marketplace.</p>
-            </div>
-            <div class="faq-item">
-                <h4>How are fees calculated?</h4>
-                <p>Upfront fees are charged once per deal period and deducted from total sales. Variable fees are charged per unit sold. We support all 13 Amazon promotion types.</p>
-            </div>
-        </div>
-    </section>
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span class="btn-text">⚡ Generate My Deals Planner</span>
+        <span class="btn-loading" style="display:none">
+          <span class="spinner"></span> Generating your planner...
+        </span>
+      </button>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <p>Amazon Deals Planner &mdash; Free tool for Amazon FBA sellers</p>
-        <p class="footer-small">Not affiliated with Amazon. Amazon is a trademark of Amazon.com, Inc.</p>
-    </footer>
+      <p class="privacy-note">🔒 Your data is used only to generate your planner and is never shared or sold.</p>
+    </form>
 
-    <script>
-        // File name display
-        document.getElementById('inventory').addEventListener('change', function() {
-            document.getElementById('inventoryName').textContent = this.files[0]?.name || 'No file selected';
-            if (this.files[0]) document.getElementById('inventoryBox').classList.add('has-file');
-        });
-        document.getElementById('fees').addEventListener('change', function() {
-            document.getElementById('feesName').textContent = this.files[0]?.name || 'No file selected';
-            if (this.files[0]) document.getElementById('feesBox').classList.add('has-file');
-        });
+    <div id="status" class="status" style="display:none"></div>
+  </div>
+</section>
 
-        // Form submit
-        document.getElementById('plannerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const status = document.getElementById('status');
-            const btnText = btn.querySelector('.btn-text');
-            const btnLoad = btn.querySelector('.btn-loading');
+<!-- DONATE -->
+<section class="donate-section">
+  <div class="donate-card">
+    <div class="donate-icon">☕</div>
+    <h2>This tool is free — and always will be.</h2>
+    <p>If it saved you time or helped you run a profitable deal, consider buying me a coffee. It helps keep the server running and the tool improving.</p>
+    <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener" class="btn-donate">
+      <span class="paypal-logo"><span class="pay">Pay</span><span class="pal">Pal</span></span>
+      Donate via PayPal
+    </a>
+    <p class="donate-note">Any amount is appreciated. No pressure. 🙏</p>
+  </div>
+</section>
 
-            btn.disabled = true;
-            btnText.style.display = 'none';
-            btnLoad.style.display = 'inline-flex';
-            status.style.display = 'none';
+<!-- CONTACT -->
+<section class="contact-section">
+  <h2>Questions or Suggestions?</h2>
+  <p>Have feedback, found a bug, or want a new feature? I'd love to hear from you.</p>
+  <a href="mailto:jhero.mangubat@gmail.com" class="contact-email">
+    ✉️ jhero.mangubat@gmail.com
+  </a>
+</section>
 
-            try {
-                const formData = new FormData(document.getElementById('plannerForm'));
+<!-- FAQ -->
+<section class="faq">
+  <div class="faq-inner">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+      <h4>Is this really free?</h4>
+      <p>Yes, completely free. No hidden fees, no premium tier, no credit card required. Just upload your files and download your planner.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What CSV files do I need?</h4>
+      <p>Two standard exports from Seller Central: your <strong>Manage Inventory</strong> report and your <strong>Fee Preview</strong> report. Both are available under Inventory and Reports in Seller Central, and downloading them takes about 2 minutes.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What does the tool actually calculate?</h4>
+      <p>For each deal type, it calculates the upfront fee (deducted once from total deal revenue), the per-unit variable fee, your net revenue after fees and COGS, and your projected profit at different sell-through rates.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Does it work outside the US?</h4>
+      <p>Yes. The tool supports US, Canada, UK, Germany, France, Italy, Spain, Japan, Australia, Mexico, and other marketplaces.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Is my data secure?</h4>
+      <p>Your CSV data is used only to generate your planner and is not stored or shared. The Excel file is generated instantly and sent directly to your browser.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Why is it slow to load sometimes?</h4>
+      <p>The app runs on free hosting that sleeps when idle. If it's your first visit in a while, it may take ~30 seconds to wake up. Just wait a moment and try again.</p>
+    </div>
+  </div>
+</section>
 
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    body: formData
-                });
+<!-- FOOTER -->
+<footer>
+  <p>Built by <a href="mailto:jhero.mangubat@gmail.com">Jhero Mangubat</a> &mdash; Amazon Deals Planner is a free tool for Amazon FBA sellers.</p>
+  <p style="margin-top:6px;">
+    <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener">☕ Support this project</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:jhero.mangubat@gmail.com">✉️ Contact</a>
+  </p>
+  <p style="margin-top:10px;">Not affiliated with Amazon.com, Inc. "Amazon" and "FBA" are trademarks of Amazon.com, Inc.</p>
+</footer>
 
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const brand = document.getElementById('brand').value;
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${brand}_Deals_Planner.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    window.URL.revokeObjectURL(url);
+<script>
+  document.getElementById('inventory').addEventListener('change', function() {
+    document.getElementById('inventoryName').textContent = this.files[0]?.name || 'No file selected';
+    if (this.files[0]) document.getElementById('inventoryBox').classList.add('has-file');
+  });
+  document.getElementById('fees').addEventListener('change', function() {
+    document.getElementById('feesName').textContent = this.files[0]?.name || 'No file selected';
+    if (this.files[0]) document.getElementById('feesBox').classList.add('has-file');
+  });
 
-                    status.className = 'status success';
-                    status.innerHTML = 'Your planner has been downloaded! Check your Downloads folder.';
-                    status.style.display = 'block';
-                } else {
-                    const error = await response.text();
-                    status.className = 'status error';
-                    status.innerHTML = 'Error: ' + error;
-                    status.style.display = 'block';
-                }
-            } catch (error) {
-                status.className = 'status error';
-                status.innerHTML = 'Network error. Please try again.';
-                status.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btnText.style.display = 'inline';
-                btnLoad.style.display = 'none';
-            }
-        });
-    </script>
+  document.getElementById('plannerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoad = btn.querySelector('.btn-loading');
+
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoad.style.display = 'inline-flex';
+    status.style.display = 'none';
+
+    try {
+      const formData = new FormData(document.getElementById('plannerForm'));
+      const response = await fetch('/generate', { method: 'POST', body: formData });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const brand = document.getElementById('brand').value;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${brand}_Deals_Planner.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        status.className = 'status success';
+        status.innerHTML = '✅ Your planner has been downloaded! Check your Downloads folder.';
+        status.style.display = 'block';
+      } else {
+        const error = await response.text();
+        status.className = 'status error';
+        status.innerHTML = '❌ Error: ' + error;
+        status.style.display = 'block';
+      }
+    } catch (err) {
+      status.className = 'status error';
+      status.innerHTML = '❌ Network error. Please try again.';
+      status.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btnText.style.display = 'inline';
+      btnLoad.style.display = 'none';
+    }
+  });
+</script>
 </body>
 </html>
