@@ -622,12 +622,12 @@ def create_workbook(brand_name, products, fees_map):
         ("Best Deal 3-day", "Non-Peak", "3 days",   210,   "MIN(G#*0.01,2000)"),
         ("Best Deal 7-day", "Non-Peak", "7 days",   490,   "MIN(G#*0.01,2000)"),
         ("Best Deal 14-day","Non-Peak", "14 days",  980,   "MIN(G#*0.01,2000)"),
-        ("Lightning Deal",  "Prime Day","4-12 hrs",  500,   "0"),
-        ("Best Deal",       "Prime Day","1-14 days", 1000,  "0"),
-        ("Lightning Deal",  "BFCM",     "4-12 hrs",  500,   "0"),
-        ("Best Deal",       "BFCM",     "1-14 days", 1000,  "0"),
-        ("Lightning Deal",  "Prime Big Deal Days","4-12 hrs", 500, "0"),
-        ("Best Deal",       "Prime Big Deal Days","1-14 days",1000,"0"),
+        ("Lightning Deal",  "Prime Day","4-12 hrs",  100,   "MIN(G#*0.015,5000)"),
+        ("Best Deal",       "Prime Day","1-14 days", 100,   "MIN(G#*0.015,5000)"),
+        ("Lightning Deal",  "BFCM",     "4-12 hrs",  500,   "MIN(G#*0.015,5000)"),
+        ("Best Deal",       "BFCM",     "1-14 days", 1000,  "MIN(G#*0.015,5000)"),
+        ("Lightning Deal",  "Prime Big Deal Days","4-12 hrs", 500, "MIN(G#*0.015,5000)"),
+        ("Best Deal",       "Prime Big Deal Days","1-14 days",1000,"MIN(G#*0.015,5000)"),
         ("Prime Exclusive", "BFCM",     "Event",     245,   "0"),
         ("Coupon",          "Any",      "Any",        5,    "G#*0.025"),
         ("Regular Discount","Any",      "Any",        0,    "0"),
@@ -658,7 +658,9 @@ def create_workbook(brand_name, products, fees_map):
         c.alignment = Alignment(horizontal="right")
 
         # Variable fee % (display label)
-        var_pct = "1% cap $2k" if "MIN" in fee_var_expr else ("2.5%" if "0.025" in fee_var_expr else "None")
+        var_pct = ("1% cap $2k" if "0.01," in fee_var_expr
+                   else ("1.5% cap $5k" if "0.015" in fee_var_expr
+                         else ("2.5%" if "0.025" in fee_var_expr else "None")))
         ws4.cell(r, 5, var_pct).fill = fill(bg); ws4.cell(r, 5).border = bdr()
         ws4.cell(r, 5).font = Font(name=FONT_NAME, size=9)
         ws4.cell(r, 5).alignment = Alignment(horizontal="center")
@@ -806,14 +808,17 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 10).alignment = Alignment(horizontal="right")
 
         # Upfront fee
-        upfront_f = (f'=IF($B$4="Non-Peak",$H$4*70,IF($D$4="Lightning Deal",500,IF($D$4="Best Deal",1000,'
-                    f'IF($D$4="Coupon",5,IF($D$4="Prime Exclusive",245,0)))))')
+        upfront_f = (f'=IF($B$4="Non-Peak",$H$4*70,'
+                    f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),100,'
+                    f'IF($D$4="Coupon",5,IF($D$4="Prime Exclusive",245,0))))')
         ws5.cell(r, 11, upfront_f)
         ws5.cell(r, 11).number_format = "$#,##0.00"; ws5.cell(r, 11).fill = fill(LIGHT_ORANGE); ws5.cell(r, 11).border = bdr()
         ws5.cell(r, 11).alignment = Alignment(horizontal="right")
 
         # Variable fee
-        var_fee_f = (f'=IF($B$4="Non-Peak",MIN(J{r}*0.01,2000),IF($D$4="Coupon",J{r}*0.025,0))')
+        var_fee_f = (f'=IF($B$4="Non-Peak",MIN(J{r}*0.01,2000),'
+                    f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),MIN(J{r}*0.015,5000),'
+                    f'IF($D$4="Coupon",J{r}*0.025,0)))')
         ws5.cell(r, 12, var_fee_f)
         ws5.cell(r, 12).number_format = "$#,##0.00"; ws5.cell(r, 12).fill = fill(LIGHT_ORANGE); ws5.cell(r, 12).border = bdr()
         ws5.cell(r, 12).alignment = Alignment(horizontal="right")
@@ -873,14 +878,14 @@ def create_workbook(brand_name, products, fees_map):
     # Generic peak events: (event, dates, bd_fee, ld_fee, cpn_fee, min_disc, notes, opp)
     # Fee values stored as numbers where possible; mixed text (e.g. "$5+2.5%") kept as text
     events_generic = [
-        ("Prime Day",          "~July (estimated)",    1000, 500, "$5+2.5%", 0.15,
-         "Submit 4+ weeks early. Strong impulse buys. Best Deals for sustained visibility.",
+        ("Prime Day",          "~July (estimated)",    100,  100,  "$5+2.5%", 0.15,
+         "Submit by Apr 30 to save $50/deal ($50 upfront instead of $100). Fixed $100/promotion + 1.5% variable fee (capped $5,000). Same fee for both LD and BD.",
          "🔥 HIGH — Peak summer shopping event."),
-        ("Black Friday/BFCM",  "~Late November",       1000, 500, 245,       0.15,
-         "Submit 6+ weeks early. Biggest traffic day. Combine Best Deal + Coupon + PEPDP.",
+        ("Black Friday/BFCM",  "~Late November",       "TBD","TBD", 245,      0.15,
+         "Submit 6+ weeks early. Biggest traffic day. Variable fee applies (est. 1.5%, capped $5k). Upfront rates TBD by Amazon — check Seller Central before submitting.",
          "🔥 HIGHEST — Top gift-giving event."),
-        ("Prime Big Deal Days","~October (estimated)", 1000, 500, "$5+2.5%", 0.15,
-         "Submit 4+ weeks ahead. Pre-holiday mindset. Good for multi-packs as gifts.",
+        ("Prime Big Deal Days","~October (estimated)", "TBD","TBD", "$5+2.5%", 0.15,
+         "Submit 4+ weeks ahead. Pre-holiday mindset. Variable fee applies (est. 1.5%, capped $5k). Upfront rates TBD by Amazon — check Seller Central before submitting.",
          "🟡 MEDIUM — Pre-holiday shopping push."),
         ("Cyber Monday",       "~December 2",          1000, 500, 245,       0.15,
          "Span Best Deal across BFCM + Cyber Monday for single $1,000 fee. Layer coupons.",
