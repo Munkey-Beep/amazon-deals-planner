@@ -93,7 +93,7 @@ def load_inventory(filepath):
     return products
 
 def load_fees(filepath):
-    """Load Amazon Fee Preview file and map SKU -> FBA fee."""
+    """Load Amazon Fee Preview file and map SKU -> Estimated Total Fee (referral + fulfillment)."""
     fees_map = {}
     try:
         for enc in ("utf-8-sig", "utf-8", "latin-1"):
@@ -104,7 +104,10 @@ def load_fees(filepath):
                         cleaned = {clean_header(k): v.strip().strip('"') if v else "" for k, v in row.items() if k}
                         sku = cleaned.get("sku", "").strip()
                         if sku:
-                            fee_str = cleaned.get("expected-fulfillment-fee-per-unit", "0").strip()
+                            # Prefer estimated-fee-total (referral + fulfillment); fall back to fulfillment only
+                            fee_str = cleaned.get("estimated-fee-total", "").strip()
+                            if not fee_str or fee_str == "--":
+                                fee_str = cleaned.get("expected-fulfillment-fee-per-unit", "0").strip()
                             try:
                                 fee = float(fee_str) if fee_str and fee_str != "--" else 0.0
                                 fees_map[sku] = fee
@@ -311,7 +314,7 @@ def create_workbook(brand_name, products, fees_map):
 
     # Subtitle
     ws2.merge_cells("A2:I2")
-    sub = ws2.cell(2, 1, "SKUs auto-fill. Fill YELLOW cells (Brand, Category, COGS, FBA Fee). Auto-detected values provided as defaults.")
+    sub = ws2.cell(2, 1, "SKUs auto-fill. Fill YELLOW cells (Brand, Category, COGS, Est. Total Fees). Auto-detected values provided as defaults.")
     sub.font = Font(name=FONT_NAME, italic=True, color="555555", size=9)
     sub.fill = fill(GRY)
     sub.alignment = Alignment(horizontal="left", vertical="center", indent=1)
@@ -319,7 +322,7 @@ def create_workbook(brand_name, products, fees_map):
 
     # Headers (row 3)
     hdrs = ["SKU", "Product Name (Auto)", "Brand", "Category", "ASIN (Auto)",
-            "COGS / Unit ($)", "FBA Fee / Unit ($)", "Min Deal Price 15% ($)", "Notes"]
+            "COGS / Unit ($)", "Est. Total Fees / Unit ($)", "Min Deal Price 15% ($)", "Notes"]
     for i, h in enumerate(hdrs, 1):
         c = ws2.cell(3, i, h)
         c.font = Font(name=FONT_NAME, bold=True, color=WHT, size=10)
@@ -421,7 +424,7 @@ def create_workbook(brand_name, products, fees_map):
     prod_hdrs = [("SKU", NAVY), ("Brand", NAVY), ("Category", BLUE),
                  ("Product", BLUE), ("List Price ($)", BLUE), ("FBA Fulfillable", BLUE),
                  ("Warehouse", BLUE), ("Unsellable", BLUE), ("Total", BLUE), ("Inbound", BLUE),
-                 ("COGS ($)", NAVY), ("FBA Fee ($)", NAVY),
+                 ("COGS ($)", NAVY), ("Est. Total Fees ($)", NAVY),
                  ("Min Deal 15% ($)", NAVY), ("Eligible?", NAVY), ("Notes", BLUE)]
     for i, (h, bg) in enumerate(prod_hdrs, 1):
         c = ws3.cell(3, i, h)
@@ -593,7 +596,7 @@ def create_workbook(brand_name, products, fees_map):
     input_cell(8, "Deal Price ($)", 3, formula="=C6*(1-C7)", fmt="$#,##0.00", bg=GRN)
     input_cell(9, "Estimated Units", 3, 30, fmt="#,##0", bg=YEL)
     input_cell(10, "COGS per Unit", 3, formula="=IFERROR(VLOOKUP(C4,'CATEGORY & COSTS'!$A:$F,6,0),0)", fmt="$#,##0.00", bg=LT_BLUE)
-    input_cell(11, "FBA Fee per Unit", 3, formula="=IFERROR(VLOOKUP(C4,'CATEGORY & COSTS'!$A:$G,7,0),0)", fmt="$#,##0.00", bg=LT_BLUE)
+    input_cell(11, "Est. Total Fees per Unit", 3, formula="=IFERROR(VLOOKUP(C4,'CATEGORY & COSTS'!$A:$G,7,0),0)", fmt="$#,##0.00", bg=LT_BLUE)
     input_cell(12, "Deal Duration (days)", 3, 7, fmt="#,##0", bg=YEL)
 
     # Promo types table header
