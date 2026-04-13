@@ -751,22 +751,31 @@ def create_workbook(brand_name, products, fees_map):
 
     ws5.freeze_panes = "A7"
 
+    # Row 5: asterisk note
+    ws5.merge_cells("A5:P5")
+    note5 = ws5.cell(5, 1, "* SKU Profit and Margin are before upfront fee deduction — see DEAL SUMMARY below for true net profit")
+    note5.font = Font(name=FONT_NAME, italic=True, color="CC4400", size=9)
+    note5.fill = fill(GRY)
+    note5.alignment = Alignment(horizontal="right")
+    ws5.row_dimensions[5].height = 16
+
     # Product table headers (row 6)
-    tbl_hdrs = [("Category", NAVY), ("SKU", NAVY), ("Product", BLUE), ("Price ($)", BLUE),
-                ("FBA Ful", BLUE), ("Eligible?", NAVY), ("Disc %", NAVY), ("Deal Price ($)", BLUE),
-                ("Est Units", NAVY), ("Revenue ($)", BLUE), ("Upfront Fee ($)", NAVY),
-                ("Variable Fee ($)", NAVY), ("Total Fee ($)", NAVY), ("COGS+FBA ($)", BLUE),
-                ("Net Profit ($)", NAVY), ("Margin", NAVY)]
+    tbl_hdrs = [("Category", NAVY), ("SKU", NAVY), ("Product", BLUE), ("List Price ($)", BLUE),
+                ("FBA Qty", BLUE), ("Eligible?", NAVY), ("Disc %", NAVY), ("Deal Price ($)", BLUE),
+                ("Est Units", NAVY), ("SKU Revenue ($)", BLUE), ("Var Fee / Unit ($)", NAVY),
+                ("Total Var Fee ($)", NAVY), ("COGS+FBA / Unit ($)", BLUE),
+                ("Total COGS+FBA ($)", BLUE), ("SKU Profit* ($)", NAVY), ("Margin*", NAVY)]
     for i, (h, bg) in enumerate(tbl_hdrs, 1):
         c = ws5.cell(6, i, h)
         c.font = Font(name=FONT_NAME, bold=True, color=WHT if bg in [NAVY, BLUE] else "000000", size=9)
         c.fill = fill(bg); c.border = bdr()
         c.alignment = Alignment(horizontal="center", wrap_text=True)
-    ws5.row_dimensions[6].height = 32
+    ws5.row_dimensions[6].height = 36
 
-    # Data rows
+    # Data rows — upfront fee is NOT per SKU; only variable fee shown here
+    first_data_row = 7
     for idx, pd in enumerate(product_data):
-        r = idx + 7
+        r = idx + first_data_row
         bg = WHT if idx % 2 == 0 else ALT
 
         # Category
@@ -784,12 +793,12 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 3).font = Font(size=9); ws5.row_dimensions[r].height = 26
         ws5.cell(r, 3).alignment = Alignment(wrap_text=True)
 
-        # Price
+        # List Price
         ws5.cell(r, 4, f"=IFERROR(VLOOKUP(B{r},'{SH_PROD}'!$A:$E,5,0),0)")
         ws5.cell(r, 4).number_format = "$#,##0.00"; ws5.cell(r, 4).fill = fill(bg); ws5.cell(r, 4).border = bdr()
         ws5.cell(r, 4).alignment = Alignment(horizontal="right")
 
-        # FBA Fulfillable
+        # FBA Qty
         ws5.cell(r, 5, f"=IFERROR(VLOOKUP(B{r},'{SH_PROD}'!$A:$F,6,0),0)")
         ws5.cell(r, 5).number_format = "#,##0"; ws5.cell(r, 5).fill = fill(bg); ws5.cell(r, 5).border = bdr()
         ws5.cell(r, 5).alignment = Alignment(horizontal="right")
@@ -799,7 +808,7 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 6).fill = fill(bg); ws5.cell(r, 6).border = bdr()
         ws5.cell(r, 6).font = Font(bold=True, size=9); ws5.cell(r, 6).alignment = Alignment(horizontal="center")
 
-        # Discount % (per-product override, default to global discount value in F4)
+        # Discount %
         ws5.cell(r, 7, f"=$F$4")
         ws5.cell(r, 7).number_format = "0.0%"; ws5.cell(r, 7).fill = fill(YEL); ws5.cell(r, 7).border = bdr()
         ws5.cell(r, 7).alignment = Alignment(horizontal="right"); ws5.cell(r, 7).font = Font(bold=True, size=10)
@@ -814,48 +823,117 @@ def create_workbook(brand_name, products, fees_map):
         ws5.cell(r, 9).number_format = "#,##0"; ws5.cell(r, 9).fill = fill(YEL); ws5.cell(r, 9).border = bdr()
         ws5.cell(r, 9).alignment = Alignment(horizontal="right"); ws5.cell(r, 9).font = Font(bold=True, size=10)
 
-        # Revenue
+        # SKU Revenue
         ws5.cell(r, 10, f"=H{r}*I{r}")
         ws5.cell(r, 10).number_format = "$#,##0.00"; ws5.cell(r, 10).fill = fill(GRN); ws5.cell(r, 10).border = bdr()
         ws5.cell(r, 10).alignment = Alignment(horizontal="right")
 
-        # Upfront fee
-        upfront_f = (f'=IF($B$4="Non-Peak",$H$4*70,'
-                    f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),100,'
-                    f'IF($D$4="Coupon",5,IF($D$4="Prime Exclusive",245,0))))')
-        ws5.cell(r, 11, upfront_f)
+        # Var Fee / Unit — variable fee per unit sold (no upfront here)
+        var_per_unit = (f'=IF($B$4="Non-Peak",H{r}*0.01,'
+                        f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),H{r}*0.015,'
+                        f'IF($D$4="Coupon",H{r}*0.025,0)))')
+        ws5.cell(r, 11, var_per_unit)
         ws5.cell(r, 11).number_format = "$#,##0.00"; ws5.cell(r, 11).fill = fill(LIGHT_ORANGE); ws5.cell(r, 11).border = bdr()
         ws5.cell(r, 11).alignment = Alignment(horizontal="right")
 
-        # Variable fee
-        var_fee_f = (f'=IF($B$4="Non-Peak",MIN(J{r}*0.01,2000),'
-                    f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),MIN(J{r}*0.015,5000),'
-                    f'IF($D$4="Coupon",J{r}*0.025,0)))')
-        ws5.cell(r, 12, var_fee_f)
+        # Total Var Fee = Var Fee/Unit × Est Units
+        ws5.cell(r, 12, f"=K{r}*I{r}")
         ws5.cell(r, 12).number_format = "$#,##0.00"; ws5.cell(r, 12).fill = fill(LIGHT_ORANGE); ws5.cell(r, 12).border = bdr()
         ws5.cell(r, 12).alignment = Alignment(horizontal="right")
 
-        # Total fee
-        ws5.cell(r, 13, f"=K{r}+L{r}")
-        ws5.cell(r, 13).number_format = "$#,##0.00"; ws5.cell(r, 13).fill = fill(LIGHT_ORANGE); ws5.cell(r, 13).border = bdr()
-        ws5.cell(r, 13).alignment = Alignment(horizontal="right"); ws5.cell(r, 13).font = Font(bold=True, size=10)
+        # COGS + FBA per unit
+        cogs_unit = (f"=IFERROR(VLOOKUP(B{r},'{SH_CAT}'!$A:$F,6,0),0)"
+                     f"+IFERROR(VLOOKUP(B{r},'{SH_CAT}'!$A:$G,7,0),0)")
+        ws5.cell(r, 13, cogs_unit)
+        ws5.cell(r, 13).number_format = "$#,##0.00"; ws5.cell(r, 13).fill = fill(bg); ws5.cell(r, 13).border = bdr()
+        ws5.cell(r, 13).alignment = Alignment(horizontal="right")
 
-        # COGS + FBA
-        ws5.cell(r, 14, f"=(IFERROR(VLOOKUP(B{r},'{SH_CAT}'!$A:$F,6,0),0)+IFERROR(VLOOKUP(B{r},'{SH_CAT}'!$A:$G,7,0),0))*I{r}")
-        ws5.cell(r, 14).number_format = "$#,##0.00"; ws5.cell(r, 14).fill = fill(GRN); ws5.cell(r, 14).border = bdr()
+        # Total COGS + FBA
+        ws5.cell(r, 14, f"=M{r}*I{r}")
+        ws5.cell(r, 14).number_format = "$#,##0.00"; ws5.cell(r, 14).fill = fill(bg); ws5.cell(r, 14).border = bdr()
         ws5.cell(r, 14).alignment = Alignment(horizontal="right")
 
-        # Net profit
-        ws5.cell(r, 15, f"=J{r}-M{r}-N{r}")
+        # SKU Profit* (before upfront fee — see summary below)
+        ws5.cell(r, 15, f"=J{r}-L{r}-N{r}")
         ws5.cell(r, 15).number_format = "$#,##0.00"; ws5.cell(r, 15).fill = fill(GRN); ws5.cell(r, 15).border = bdr()
         ws5.cell(r, 15).alignment = Alignment(horizontal="right"); ws5.cell(r, 15).font = Font(bold=True, size=10)
 
-        # Margin
+        # Margin* (before upfront fee)
         ws5.cell(r, 16, f"=IFERROR(O{r}/J{r},0)")
         ws5.cell(r, 16).number_format = "0.0%"; ws5.cell(r, 16).fill = fill(GRN); ws5.cell(r, 16).border = bdr()
         ws5.cell(r, 16).alignment = Alignment(horizontal="right"); ws5.cell(r, 16).font = Font(bold=True, size=10)
 
-    set_col_widths(ws5, [22, 14, 52, 13, 12, 14, 12, 14, 14, 14, 14, 14, 14, 14, 14, 12])
+    # ── DEAL SUMMARY (after last data row) ──────────────────────────────────
+    last_data = first_data_row + len(product_data) - 1
+    s = last_data + 2  # summary starts 2 rows after last data row
+
+    # Summary header
+    ws5.merge_cells(f"A{s}:P{s}")
+    sh = ws5.cell(s, 1, "📊  DEAL SUMMARY — Upfront fee charged ONCE for the entire deal period")
+    sh.font = Font(name=FONT_NAME, bold=True, color=WHT, size=11)
+    sh.fill = fill(NAVY); ws5.row_dimensions[s].height = 22
+
+    # Summary rows: label in col A-D (merged), value in col E
+    def sum_row(row, label, formula, num_fmt="$#,##0.00", bold=False, bg_color=None):
+        ws5.merge_cells(f"A{row}:D{row}")
+        lc = ws5.cell(row, 1, label)
+        lc.font = Font(name=FONT_NAME, bold=bold, size=10)
+        lc.fill = fill(bg_color or GRY); lc.border = bdr()
+        lc.alignment = Alignment(horizontal="left", vertical="center")
+        vc = ws5.cell(row, 5, formula)
+        vc.number_format = num_fmt
+        vc.font = Font(name=FONT_NAME, bold=bold, size=10)
+        vc.fill = fill(bg_color or WHT); vc.border = bdr()
+        vc.alignment = Alignment(horizontal="right")
+
+    j_range = f"J{first_data_row}:J{last_data}"
+    l_range = f"L{first_data_row}:L{last_data}"
+    n_range = f"N{first_data_row}:N{last_data}"
+
+    upfront_formula = (f'=IF($B$4="Non-Peak",$H$4*70,'
+                       f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),100,'
+                       f'IF($D$4="Coupon",5,IF($D$4="Prime Exclusive",245,0))))')
+
+    # Variable fee capped at deal level
+    var_total_formula = (f'=IF($B$4="Non-Peak",MIN(SUM({l_range}),2000),'
+                         f'IF(OR($D$4="Lightning Deal",$D$4="Best Deal"),MIN(SUM({l_range}),5000),'
+                         f'SUM({l_range})))')
+
+    sum_row(s+1, "Total Projected Revenue (all SKUs)",        f"=SUM({j_range})")
+    sum_row(s+2, "Upfront Fee  (ONE charge — not per SKU)",   upfront_formula, bg_color=LIGHT_ORANGE)
+    sum_row(s+3, "Total Variable Fees (capped per deal)",      var_total_formula, bg_color=LIGHT_ORANGE)
+    sum_row(s+4, "Total COGS + FBA Fulfillment Fees",          f"=SUM({n_range})")
+
+    # Spacer
+    ws5.row_dimensions[s+5].height = 6
+
+    # Net profit — highlighted
+    ws5.merge_cells(f"A{s+6}:D{s+6}")
+    np_label = ws5.cell(s+6, 1, "💰  NET DEAL PROFIT  (after all fees & costs)")
+    np_label.font = Font(name=FONT_NAME, bold=True, color=WHT, size=11)
+    np_label.fill = fill(NAVY); np_label.border = bdr()
+    np_label.alignment = Alignment(horizontal="left", vertical="center")
+    ws5.row_dimensions[s+6].height = 24
+
+    np_val = ws5.cell(s+6, 5, f"=E{s+1}-E{s+2}-E{s+3}-E{s+4}")
+    np_val.number_format = "$#,##0.00"
+    np_val.font = Font(name=FONT_NAME, bold=True, size=12, color=WHT)
+    np_val.fill = fill(NAVY); np_val.border = bdr()
+    np_val.alignment = Alignment(horizontal="right")
+
+    sum_row(s+7, "Net Deal Margin", f"=IFERROR(E{s+6}/E{s+1},0)", num_fmt="0.0%", bold=True)
+
+    # How it works note
+    ws5.merge_cells(f"A{s+9}:P{s+9}")
+    note = ws5.cell(s+9, 1,
+        "ℹ️  HOW IT WORKS:  Upfront fee is charged once per deal submission (not per SKU). "
+        "Variable fee = deal price × rate per unit sold, capped at $2,000 (Non-Peak) or $5,000 (Prime Day). "
+        "SKU Profit* and Margin* above exclude the upfront fee — NET DEAL PROFIT reflects the true bottom line.")
+    note.font = Font(name=FONT_NAME, italic=True, size=9, color="444444")
+    note.fill = fill(GRY); note.alignment = Alignment(wrap_text=True, horizontal="left")
+    ws5.row_dimensions[s+9].height = 36
+
+    set_col_widths(ws5, [22, 14, 50, 14, 12, 14, 11, 14, 12, 14, 14, 14, 14, 14, 14, 11])
 
     # ─────────────────────────────────────────────────────────────────────────
     # SHEET 6: PEAK CALENDAR
