@@ -737,6 +737,18 @@ def create_workbook(brand_name, products, fees_map):
     dv_dtype = DataValidation(type="list", formula1='"Lightning Deal,Best Deal,Coupon,Regular Discount,Prime Exclusive"', allow_blank=False)
     ws5.add_data_validation(dv_dtype); dv_dtype.sqref = "D4"
 
+    # Dynamic rate info label (row 4, cols I-P)
+    ws5.cell(4, 9, "Current Rates:").font = Font(bold=True, size=9)
+    ws5.cell(4, 9).fill = fill(GRY)
+    rate_formula = ('=IF($B$4="Non-Peak","Non-Peak: $70/day upfront + 1% variable (capped $2,000)",'
+                    'IF($B$4="Prime Day","Prime Day 2026: $100/deal upfront + 1.5% variable (capped $5,000)",'
+                    '"Peak event: fixed upfront + 1.5% variable — rates vary, check Seller Central"))')
+    c = ws5.cell(4, 10, rate_formula)
+    c.font = Font(bold=True, size=9, color="CC4400")
+    c.fill = fill(LIGHT_ORANGE)
+    ws5.merge_cells("J4:P4")
+    c.alignment = Alignment(horizontal="left", vertical="center")
+
     ws5.freeze_panes = "A7"
 
     # Product table headers (row 6)
