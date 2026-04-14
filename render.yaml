@@ -12,3 +12,5 @@ services:
         sync: false
       - key: FLASK_DEBUG
         value: false
+      - key: REDIRECT_TO
+        sync: false
