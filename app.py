@@ -17,7 +17,7 @@ from flask import Flask, render_template, request, send_file, jsonify
 from werkzeug.utils import secure_filename
 
 # Planner generator
-from planner import load_inventory, load_fees, create_workbook
+from planner import load_deal_recommendations, load_fees, create_workbook
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
@@ -82,20 +82,24 @@ def save_lead(data):
         print(f"  Lead logged locally: {record['email']} ({record['brand']})")
 
 
-def save_upload(file_obj, email, brand, file_type):
-    """Save uploaded CSV to Supabase storage (or skip if unavailable)."""
+def save_upload(file_obj, email, brand, file_type, ext="xlsx"):
+    """Save uploaded file to Supabase storage (or skip if unavailable)."""
     if not supabase:
         return
 
     try:
-        filename = f"{brand}/{email}/{file_type}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"{brand}/{email}/{file_type}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{ext}"
+        content_type = (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            if ext == "xlsx" else "text/csv"
+        )
         file_bytes = file_obj.read()
         file_obj.seek(0)  # Reset for later use
 
         supabase.storage.from_("uploads").upload(
             filename,
             file_bytes,
-            {"content-type": "text/csv"}
+            {"content-type": content_type}
         )
         print(f"  Uploaded: {filename}")
     except Exception as e:
@@ -123,36 +127,46 @@ def generate():
             return "Email and brand name are required", 400
 
         # Get files
-        inv_file = request.files.get("inventory")
-        fees_file = request.files.get("fees")
+        deals_file = request.files.get("deals")
+        fees_file  = request.files.get("fees")
 
-        if not inv_file or not fees_file:
-            return "Both CSV files are required", 400
+        if not deals_file:
+            return "Deals Recommendation Template (.xlsx) is required", 400
 
         # Save uploads to Supabase storage
-        save_upload(inv_file, email, brand, "inventory")
-        save_upload(fees_file, email, brand, "fees")
+        save_upload(deals_file, email, brand, "deals_recommendations", ext="xlsx")
+        if fees_file and fees_file.filename:
+            fees_ext = "csv" if fees_file.filename.lower().endswith(".csv") else "xlsx"
+            save_upload(fees_file, email, brand, "fee_preview", ext=fees_ext)
 
-        # Save to temp files for processing
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as tmp_inv:
-            inv_file.save(tmp_inv)
-            inv_path = tmp_inv.name
+        # Save deals file to temp
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False, mode="wb") as tmp_deals:
+            deals_file.save(tmp_deals)
+            deals_path = tmp_deals.name
 
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as tmp_fees:
-            fees_file.save(tmp_fees)
-            fees_path = tmp_fees.name
+        fees_path = None
+        if fees_file and fees_file.filename:
+            fees_ext = ".csv" if fees_file.filename.lower().endswith(".csv") else ".xlsx"
+            with tempfile.NamedTemporaryFile(suffix=fees_ext, delete=False, mode="wb") as tmp_fees:
+                fees_file.save(tmp_fees)
+                fees_path = tmp_fees.name
 
         # Process
-        products = load_inventory(inv_path)
-        fees_map = load_fees(fees_path)
+        recommendations = load_deal_recommendations(deals_path)
+        fees_map = load_fees(fees_path) if fees_path else {}
 
-        if not products:
-            os.unlink(inv_path)
-            os.unlink(fees_path)
-            return "No products found in inventory file. Make sure it's the correct Manage Inventory CSV.", 400
+        if not recommendations:
+            os.unlink(deals_path)
+            if fees_path:
+                os.unlink(fees_path)
+            return (
+                "No deal recommendations found. "
+                "Make sure it's the Amazon Deals Recommendation Template with the "
+                "'Deal Recommendation Template' tab.", 400
+            )
 
         # Generate workbook
-        wb = create_workbook(brand, products, fees_map)
+        wb = create_workbook(brand, recommendations, fees_map)
 
         # Save to temp
         output_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.xlsx")
@@ -165,13 +179,14 @@ def generate():
             "store_url": store_url,
             "marketplace": marketplace,
             "num_skus": num_skus,
-            "num_products": len(products),
+            "num_products": len(recommendations),
             "num_fees": len(fees_map),
         })
 
-        # Clean up temp CSV files
-        os.unlink(inv_path)
-        os.unlink(fees_path)
+        # Clean up temp files
+        os.unlink(deals_path)
+        if fees_path:
+            os.unlink(fees_path)
 
         # Send file
         response = send_file(

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Amazon Deals Planner — Free Deal Fee Calculator for FBA Sellers</title>
-  <meta name="description" content="Stop guessing your Amazon deal fees. Upload your Inventory + Fee Preview CSVs and get an instant, accurate deals planner with profit projections for every promotion type." />
+  <meta name="description" content="Stop guessing your Amazon deal fees. Upload your Deals Recommendation Template and get an instant, accurate deals planner with profit projections for every Amazon-recommended deal." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
@@ -618,7 +618,7 @@
 <section class="hero">
   <div class="hero-badge">Free Tool for Amazon FBA Sellers</div>
   <h1>Stop Guessing Your<br><span class="accent">Amazon Deal Fees.</span></h1>
-  <p class="hero-sub">Upload your Inventory + Fee Preview CSVs and get an instant, accurate deals planner with correct fee math, profit projections, and a peak event calendar — for every promotion type.</p>
+  <p class="hero-sub">Upload your Amazon Deals Recommendation Template and get an instant, accurate planner — showing deal type, correct fee math, estimated profit, and margin for every Amazon-recommended deal.</p>
   <div class="hero-actions">
     <a href="#tool" class="btn-primary">Generate My Free Planner →</a>
     <a href="#how-it-works" class="btn-ghost">See How It Works</a>
@@ -670,12 +670,12 @@
     <div class="step">
       <div class="step-num">1</div>
       <h3>Export from Seller Central</h3>
-      <p>Download your <strong>Manage Inventory</strong> CSV and your <strong>Fee Preview</strong> CSV — both standard exports, takes 2 minutes.</p>
+      <p>Download your <strong>Deals Recommendation Template</strong> from Seller Central → Deals → Manage Deals → Bulk Upload. Optionally add your <strong>Fee Preview CSV</strong> for accurate fee projections.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
       <h3>Upload &amp; Generate</h3>
-      <p>Enter your brand name, upload the two files, and click generate. We do the rest — fee lookups, formula building, and calculations.</p>
+      <p>Enter your brand name, upload your Deals Recommendation Template (and optional Fee Preview), and click generate. We do the rest — deal grouping, fee math, and profit calculations.</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
@@ -810,19 +810,21 @@
       <div class="form-section">
         <h3>Upload Your Amazon Data</h3>
         <div class="upload-grid">
-          <div class="upload-box" id="inventoryBox">
-            <div class="upload-icon">📋</div>
-            <h4>Manage Inventory CSV *</h4>
-            <p>Seller Central → Inventory → Manage Inventory → Download</p>
-            <input type="file" id="inventory" name="inventory" accept=".csv,.txt" required />
-            <label for="inventory" class="upload-btn">Choose File</label>
-            <span class="file-name" id="inventoryName">No file selected</span>
+          <div class="upload-box" id="dealsBox">
+            <div class="upload-icon">🎯</div>
+            <h4>Deals Recommendation Template <em>(.xlsx)</em> *</h4>
+            <p>Seller Central → Deals → Manage Deals → Bulk Upload → Download template<br/>
+            <strong>This is the Excel file Amazon pre-fills with your recommended deals.</strong></p>
+            <input type="file" id="deals" name="deals" accept=".xlsx,.xls" required />
+            <label for="deals" class="upload-btn">Choose File</label>
+            <span class="file-name" id="dealsName">No file selected</span>
           </div>
           <div class="upload-box" id="feesBox">
             <div class="upload-icon">💰</div>
-            <h4>Fee Preview CSV *</h4>
-            <p>Seller Central → Reports → Fee Preview → Download</p>
-            <input type="file" id="fees" name="fees" accept=".csv,.txt" required />
+            <h4>Fee Preview CSV <em>(optional but recommended)</em></h4>
+            <p>Seller Central → Reports → Fulfillment → Fee Preview → Download<br/>
+            Adds referral + FBA fulfillment fees per SKU for accurate profit projections.</p>
+            <input type="file" id="fees" name="fees" accept=".csv,.txt" />
             <label for="fees" class="upload-btn">Choose File</label>
             <span class="file-name" id="feesName">No file selected</span>
           </div>
@@ -875,8 +877,8 @@
       <p>Yes, completely free. No hidden fees, no premium tier, no credit card required. Just upload your files and download your planner.</p>
     </div>
     <div class="faq-item">
-      <h4>What CSV files do I need?</h4>
-      <p>Two standard exports from Seller Central: your <strong>Manage Inventory</strong> report and your <strong>Fee Preview</strong> report. Both are available under Inventory and Reports in Seller Central, and downloading them takes about 2 minutes.</p>
+      <h4>What files do I need?</h4>
+      <p>The <strong>Deals Recommendation Template</strong> (Excel .xlsx) is the main file — Amazon pre-fills it with your recommended deals. Get it from Seller Central → Deals → Manage Deals → Bulk Upload. Optionally add your <strong>Fee Preview CSV</strong> (Seller Central → Reports → Fulfillment → Fee Preview) for referral + FBA fee accuracy.</p>
     </div>
     <div class="faq-item">
       <h4>What does the tool actually calculate?</h4>
@@ -909,9 +911,9 @@
 </footer>
 
 <script>
-  document.getElementById('inventory').addEventListener('change', function() {
-    document.getElementById('inventoryName').textContent = this.files[0]?.name || 'No file selected';
-    if (this.files[0]) document.getElementById('inventoryBox').classList.add('has-file');
+  document.getElementById('deals').addEventListener('change', function() {
+    document.getElementById('dealsName').textContent = this.files[0]?.name || 'No file selected';
+    if (this.files[0]) document.getElementById('dealsBox').classList.add('has-file');
   });
   document.getElementById('fees').addEventListener('change', function() {
     document.getElementById('feesName').textContent = this.files[0]?.name || 'No file selected';
