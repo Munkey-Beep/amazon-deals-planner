@@ -363,7 +363,9 @@ def create_workbook(brand_name, recommendations, fees_data):
     ws.merge_cells(f"A3:{last_col}3")
     c = ws.cell(3, 1,
         "  ★ = Amazon Recommended Deal  |  "
-        "COGS / Unit (column N) is optional — fill yellow cells to calculate true net profit & margin.")
+        "COGS / Unit (column N) is optional — fill yellow cells to calculate true net profit & margin.  |  "
+        "🟠 Orange Var Fee = cap prorated across deal group  |  "
+        "🔴 Red row = SKU missing from Fee Preview")
     c.font      = Font(name=FONT_NAME, italic=True, color="595959", size=9)
     c.fill      = fill(YEL)
     c.alignment = Alignment(horizontal="left", vertical="center")
@@ -413,6 +415,28 @@ def create_workbook(brand_name, recommendations, fees_data):
     for rid in rec_order:
         ordered_recs.extend(rec_groups[rid])
 
+    # ── Pre-compute effective variable-fee rate per group (cap-adjusted) ──
+    # The cap ($2,000 non-peak / $5,000 Prime Day) applies to the TOTAL
+    # variable fees for the whole deal group.  When the cap is hit we prorate:
+    #   effective_rate = cap / group_total_revenue
+    # This ensures row-level Var Fee/Unit and Total Fees are consistent with
+    # the capped figure shown in the Deal Summary.
+    group_effective_rates = {}   # rid -> effective rate (float)
+    group_cap_hit         = {}   # rid -> bool
+    for rid in rec_order:
+        group   = rec_groups[rid]
+        sched   = group[0]["schedule"]
+        raw_rate = var_fee_rate(sched)
+        cap      = var_fee_cap(sched)
+        grp_rev  = sum(r["deal_price"] * r["committed_units"] for r in group)
+        raw_var  = grp_rev * raw_rate
+        if grp_rev > 0 and raw_var > cap:
+            group_effective_rates[rid] = cap / grp_rev   # prorated
+            group_cap_hit[rid]         = True
+        else:
+            group_effective_rates[rid] = raw_rate
+            group_cap_hit[rid]         = False
+
     # ── Data Rows ─────────────────────────────────────────────────────────
     DATA_START = 5
     row = DATA_START
@@ -425,8 +449,9 @@ def create_workbook(brand_name, recommendations, fees_data):
         sp       = rec["seller_price"]
         dp       = rec["deal_price"]
         units    = rec["committed_units"]
+        rid      = rec["recommendation_id"]
         amz_fee, fee_src = lookup_fee(sku, rec["deal_asin"], sku_map, asin_map)
-        rate     = var_fee_rate(schedule)
+        rate     = group_effective_rates[rid]   # cap-adjusted effective rate
         fee_missing = (fee_src == "missing")
 
         row_bg = ALT if i % 2 == 0 else WHT
@@ -460,7 +485,13 @@ def create_workbook(brand_name, recommendations, fees_data):
         elif fee_src == "asin":
             # Matched via ASIN fallback — note in italic
             c10.font = Font(name=FONT_NAME, size=9, italic=True, color="595959")
-        wc(11, f"=F{r}*{rate}",    "$#,##0.00")                          # Deal Var Fee/Unit
+        # Deal Var Fee/Unit — uses cap-adjusted effective rate when group cap is hit
+        c11 = wc(11, f"=F{r}*{rate:.8f}", "$#,##0.00")                   # Deal Var Fee/Unit
+        if group_cap_hit[rid]:
+            # Faint orange tint to indicate cap was applied; tooltip via cell comment not
+            # supported in openpyxl easily, but color signals the proration
+            c11.fill = fill(ORG)
+            c11.font = Font(name=FONT_NAME, size=9, italic=True, color="7F3F00")
         wc(12, f"=J{r}+K{r}",      "$#,##0.00")                          # Total Fees/Unit
         wc(13, f"=L{r}*H{r}",      "$#,##0.00")                          # Total Fees
         wc(14, "",                  "$#,##0.00", bg_ov=YEL)              # COGS/Unit (user fills)
