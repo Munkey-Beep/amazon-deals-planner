@@ -573,15 +573,22 @@ def create_workbook(brand_name, recommendations, fees_data):
         sched   = first["schedule"]
         dtype   = first["deal_type"]
         prime   = is_prime_day(sched)
-        rate    = var_fee_rate(sched)
+        raw_rate = var_fee_rate(sched)
         cap     = var_fee_cap(sched)
         upfront = compute_upfront_fee(dtype, sched)
 
-        # Compute group totals from actual data
+        # Row numbers in the DEALS PLANNER sheet for this group's SKUs
+        grp_rows = [data_row_map[(r["sku"], rid)] for r in group]
+
+        # Excel formulas that reference actual data rows — summary always matches rows
+        rev_formula = "=SUM(" + ",".join(f"I{dr}" for dr in grp_rows) + ")"
+        var_formula = "=" + "+".join(f"K{dr}*H{dr}" for dr in grp_rows)
+        amz_formula = "=" + "+".join(f"J{dr}*H{dr}" for dr in grp_rows)
+
+        # Python values only used for notes / cap display
         grp_revenue   = sum(r["deal_price"] * r["committed_units"] for r in group)
-        grp_raw_var   = sum(r["deal_price"] * r["committed_units"] * rate for r in group)
+        grp_raw_var   = sum(r["deal_price"] * r["committed_units"] * raw_rate for r in group)
         grp_var_capped = min(grp_raw_var, cap)
-        grp_amz_fees  = sum(lookup_fee(r["sku"], r["deal_asin"], sku_map, asin_map)[0] * r["committed_units"] for r in group)
 
         # Group header row
         period_tag = "🔥 PRIME DAY" if prime else "📅 Non-Peak"
@@ -596,7 +603,7 @@ def create_workbook(brand_name, recommendations, fees_data):
         ws.row_dimensions[row].height = 20
         row += 1
 
-        s_row("Deal Revenue", grp_revenue, bg=GRY, note=f"{len(group)} SKU(s)")
+        s_row("Deal Revenue", rev_formula, bg=GRY, note=f"{len(group)} SKU(s)")
         row += 1
 
         upfront_note = (
@@ -609,27 +616,35 @@ def create_workbook(brand_name, recommendations, fees_data):
         row += 1
 
         var_note = (
-            f"{rate*100:.0f}% of deal price  |  "
-            f"Cap ${cap:,.0f}  |  "
-            f"Raw ${grp_raw_var:,.2f}"
-            + ("  ✓ CAPPED" if grp_raw_var > cap else "")
+            f"{raw_rate*100:.1f}% of deal price  |  "
+            f"Cap ${cap:,.0f}"
+            + (f"  |  Raw ${grp_raw_var:,.2f}  ✓ CAPPED" if grp_raw_var > cap else "")
         )
-        s_row("(Less)  Variable Deal Fees (capped)", grp_var_capped,
+        s_row("(Less)  Variable Deal Fees (capped)", var_formula,
               note=var_note, bg=RED_L)
         row += 1
 
-        s_row("(Less)  Est. Amazon Fees  (Referral + FBA)", grp_amz_fees,
+        s_row("(Less)  Est. Amazon Fees  (Referral + FBA)", amz_formula,
               note="From Amazon Fee Preview — referral + FBA fulfillment combined", bg=RED_L)
         row += 1
 
-        grp_rows = [data_row_map[(r["sku"], rid)] for r in group]
         cogs_formula = f"=SUM({','.join(f'O{dr}' for dr in grp_rows)})"
         s_row("(Less)  Total COGS*", cogs_formula,
               note="Fill COGS/Unit (yellow, column N) in the rows above", bg=YEL)
         row += 1
 
-        # Group sub-profit
-        grp_profit_ex = grp_revenue - upfront - grp_var_capped - grp_amz_fees
+        # Group sub-profit — formula referencing the summary value cells above
+        # summary rows were written at: row-6 (revenue), row-5 (upfront), row-4 (var),
+        # row-3 (amz), row-2 (cogs), so profit = revenue - upfront - var - amz - cogs
+        rev_row    = row - 6
+        upfr_row   = row - 5
+        var_row    = row - 4
+        amz_row    = row - 3
+        cogs_row   = row - 2
+        grp_profit_formula = (
+            f"=F{rev_row}-F{upfr_row}-F{var_row}-F{amz_row}-F{cogs_row}"
+        )
+        grp_profit_ex = grp_revenue - upfront - grp_var_capped  # python fallback for display
         ws.merge_cells(f"A{row}:E{row}")
         c = ws.cell(row, 1, "  → Est. Group Profit*  (before COGS)")
         c.font      = Font(name=FONT_NAME, bold=True, color="1F4E79", size=10)
@@ -637,7 +652,7 @@ def create_workbook(brand_name, recommendations, fees_data):
         c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
 
         ws.merge_cells(f"F{row}:I{row}")
-        c = ws.cell(row, 6, grp_profit_ex)
+        c = ws.cell(row, 6, grp_profit_formula)
         c.font         = Font(name=FONT_NAME, bold=True, color="1F4E79", size=10)
         c.number_format = "$#,##0.00"
         c.fill          = fill(GRN)
@@ -660,20 +675,11 @@ def create_workbook(brand_name, recommendations, fees_data):
     ws.row_dimensions[row].height = 24
     row += 1
 
-    total_revenue  = sum(r["deal_price"] * r["committed_units"] for r in ordered_recs)
-    total_upfront  = sum(
+    # Grand Totals — upfront fee is the only Python-only value (no column for it in rows)
+    total_upfront = sum(
         compute_upfront_fee(rec_groups[rid][0]["deal_type"], rec_groups[rid][0]["schedule"])
         for rid in rec_order
     )
-    all_raw_var = {
-        rid: sum(r["deal_price"] * r["committed_units"] * var_fee_rate(rec_groups[rid][0]["schedule"])
-                 for r in rec_groups[rid])
-        for rid in rec_order
-    }
-    total_capped_var = sum(min(v, var_fee_cap(rec_groups[rid][0]["schedule"]))
-                           for rid, v in all_raw_var.items())
-    total_amz        = sum(lookup_fee(r["sku"], r["deal_asin"], sku_map, asin_map)[0] * r["committed_units"] for r in ordered_recs)
-    grand_ex_cogs    = total_revenue - total_upfront - total_capped_var - total_amz
 
     def g_row(label, value, fmt="$#,##0.00", note="", bold=False, bg=GRY):
         ws.merge_cells(f"A{row}:E{row}")
@@ -697,32 +703,48 @@ def create_workbook(brand_name, recommendations, fees_data):
             c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[row].height = 18
 
+    # All totals derived from the data rows via Excel formulas — guaranteed to match
+    rev_total_row = row
     g_row("Total Deal Revenue",
-          total_revenue, bold=True,
+          f"=SUM(I{DATA_START}:I{DATA_END})", bold=True,
           note=f"{len(ordered_recs)} SKU(s) across {len(rec_order)} deal group(s)")
     row += 1
 
+    upfr_total_row = row
     g_row("(Less)  Total Upfront Fees",
           -total_upfront, bg=RED_L,
           note=f"{len(rec_order)} deal group(s) — one upfront fee per group")
     row += 1
 
+    var_total_row = row
     g_row("(Less)  Total Variable Deal Fees (capped per group)",
-          -total_capped_var, bg=RED_L,
+          f"=-SUMPRODUCT(K{DATA_START}:K{DATA_END},H{DATA_START}:H{DATA_END})",
+          bg=RED_L,
           note="Each group capped separately ($2K Non-Peak / $5K Prime Day)")
     row += 1
 
+    amz_total_row = row
     g_row("(Less)  Total Est. Amazon Fees  (Referral + FBA)",
-          -total_amz, bg=RED_L,
+          f"=-SUMPRODUCT(J{DATA_START}:J{DATA_END},H{DATA_START}:H{DATA_END})",
+          bg=RED_L,
           note="Referral + fulfillment from Amazon Fee Preview")
     row += 1
 
+    cogs_total_row = row
     g_row("(Less)  Total COGS*",
           f"=-SUM(O{DATA_START}:O{DATA_END})",
           note="Fill COGS/Unit (yellow column N) in data rows above", bg=YEL)
     row += 1
 
-    # NET PROFIT bar
+    # NET PROFIT bar — formula sums all the g_row cells above
+    net_profit_formula = (
+        f"=F{rev_total_row}"
+        f"+F{upfr_total_row}"
+        f"+F{var_total_row}"
+        f"+F{amz_total_row}"
+        f"+F{cogs_total_row}"
+    )
+
     ws.merge_cells(f"A{row}:E{row}")
     c = ws.cell(row, 1, "  💰  NET DEAL PROFIT*")
     c.font      = Font(name=FONT_NAME, bold=True, color=WHT, size=13)
@@ -730,7 +752,7 @@ def create_workbook(brand_name, recommendations, fees_data):
     c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
 
     ws.merge_cells(f"F{row}:I{row}")
-    c = ws.cell(row, 6, grand_ex_cogs)
+    c = ws.cell(row, 6, net_profit_formula)
     c.font         = Font(name=FONT_NAME, bold=True, color=WHT, size=13)
     c.number_format = "$#,##0.00"
     c.fill          = fill(NAVY)
@@ -744,8 +766,8 @@ def create_workbook(brand_name, recommendations, fees_data):
     ws.row_dimensions[row].height = 28
     row += 1
 
-    # Net Margin
-    net_margin = grand_ex_cogs / total_revenue if total_revenue > 0 else 0
+    # Net Margin — derived from the NET PROFIT and revenue formula cells above
+    net_margin_row = row - 1   # net profit was written to row-1
     ws.merge_cells(f"A{row}:E{row}")
     c = ws.cell(row, 1, "  Net Margin*  (before COGS)")
     c.font      = Font(name=FONT_NAME, bold=True, color=WHT, size=11)
@@ -753,7 +775,7 @@ def create_workbook(brand_name, recommendations, fees_data):
     c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
 
     ws.merge_cells(f"F{row}:I{row}")
-    c = ws.cell(row, 6, net_margin)
+    c = ws.cell(row, 6, f"=IFERROR(F{net_margin_row}/F{rev_total_row},0)")
     c.font         = Font(name=FONT_NAME, bold=True, color=WHT, size=11)
     c.number_format = "0.0%"
     c.fill          = fill(BLUE)
