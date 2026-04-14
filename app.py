@@ -108,7 +108,7 @@ def save_upload(file_obj, email, brand, file_type, ext="xlsx"):
 
 # ── Redirect (Render → Vercel migration) ──────────────────────────────────
 # All traffic is permanently redirected to the Vercel deployment.
-VERCEL_URL = "https://amz-laud.vercel.app"
+VERCEL_URL = "https://amazon-deals-planner.vercel.app"
 
 @app.before_request
 def redirect_to_vercel():
