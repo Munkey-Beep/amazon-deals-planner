@@ -107,16 +107,15 @@ def save_upload(file_obj, email, brand, file_type, ext="xlsx"):
 
 
 # ── Redirect (Render → Vercel migration) ──────────────────────────────────
-# Set REDIRECT_TO=https://your-app.vercel.app on the Render service.
-# All requests will 301 to the equivalent path on the new host.
-# Leave unset on Vercel so the app runs normally there.
+# All traffic is permanently redirected to the Vercel deployment.
+VERCEL_URL = "https://amz-laud.vercel.app"
 
 @app.before_request
-def redirect_to_new_host():
-    target_host = os.environ.get("REDIRECT_TO", "").rstrip("/")
-    if target_host:
-        target = target_host + request.full_path.rstrip("?")
-        return redirect(target, code=301)
+def redirect_to_vercel():
+    path = request.path
+    qs   = request.query_string.decode("utf-8")
+    target = VERCEL_URL + path + ("?" + qs if qs else "")
+    return redirect(target, code=301)
 
 # ── Routes ──
 
