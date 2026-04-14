@@ -198,16 +198,21 @@ def load_deal_recommendations(filepath):
 def load_fees(filepath):
     """
     Load Amazon Fee Preview CSV.
-    Prefers 'estimated-fee-total' (referral + fulfillment).
+    Prefers 'estimated-fee-total' (referral + fulfillment combined).
     Falls back to 'expected-fulfillment-fee-per-unit' if total not available.
-    Returns dict: SKU -> float
+    Filters to US store rows only when multiple marketplaces are present.
+    Returns two dicts: (sku_map, asin_map) — both keyed to estimated total fee.
+    For backward compatibility, also returns a merged flat dict as .combined attribute.
+    Use lookup_fee(sku, asin, sku_map, asin_map) for best-effort matching.
     """
-    fees_map = {}
+    sku_map  = {}   # sku  -> fee
+    asin_map = {}   # asin -> fee
     if not filepath:
-        return fees_map
+        return sku_map, asin_map
     try:
         for enc in ("utf-8-sig", "utf-8", "latin-1"):
             try:
+                rows_all = []
                 with open(filepath, encoding=enc) as f:
                     reader = csv.DictReader(f)
                     for row in reader:
@@ -215,22 +220,52 @@ def load_fees(filepath):
                             clean_header(k): v.strip().strip('"') if v else ""
                             for k, v in row.items() if k
                         }
-                        sku = cleaned.get("sku", "").strip()
-                        if sku:
-                            fee_str = cleaned.get("estimated-fee-total", "").strip()
-                            if not fee_str or fee_str == "--":
-                                fee_str = cleaned.get("expected-fulfillment-fee-per-unit", "0").strip()
-                            try:
-                                fees_map[sku] = float(fee_str) if fee_str and fee_str != "--" else 0.0
-                            except ValueError:
-                                fees_map[sku] = 0.0
-                if fees_map:
+                        rows_all.append(cleaned)
+
+                # Prefer US-only rows if file contains multiple marketplaces
+                us_rows = [r for r in rows_all if r.get("amazon-store", "US") == "US"]
+                target_rows = us_rows if us_rows else rows_all
+
+                for cleaned in target_rows:
+                    sku  = cleaned.get("sku",  "").strip()
+                    asin = cleaned.get("asin", "").strip()
+
+                    fee_str = cleaned.get("estimated-fee-total", "").strip()
+                    if not fee_str or fee_str == "--":
+                        fee_str = cleaned.get("expected-fulfillment-fee-per-unit", "0").strip()
+
+                    try:
+                        fee = float(fee_str) if fee_str and fee_str != "--" else 0.0
+                    except ValueError:
+                        fee = 0.0
+
+                    if sku:
+                        sku_map[sku] = fee
+                    if asin:
+                        asin_map[asin] = fee
+
+                if sku_map or asin_map:
                     break
             except (UnicodeDecodeError, UnicodeError):
                 continue
     except Exception as e:
         print(f"⚠️  Warning: Could not load fees file: {e}")
-    return fees_map
+
+    print(f"  Fee Preview: {len(sku_map)} SKUs, {len(asin_map)} ASINs loaded (US store)")
+    return sku_map, asin_map
+
+
+def lookup_fee(sku, asin, sku_map, asin_map):
+    """
+    Look up the estimated total fee for a SKU.
+    Tries SKU first, then ASIN as fallback.
+    Returns (fee, source) where source is 'sku', 'asin', or 'missing'.
+    """
+    if sku and sku in sku_map:
+        return sku_map[sku], "sku"
+    if asin and asin in asin_map:
+        return asin_map[asin], "asin"
+    return 0.0, "missing"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -279,11 +314,19 @@ def var_fee_cap(schedule):
 # WORKBOOK CREATION
 # ═════════════════════════════════════════════════════════════════════════════
 
-def create_workbook(brand_name, recommendations, fees_map):
+def create_workbook(brand_name, recommendations, fees_data):
     """
     Build the Amazon Deals Planner Excel workbook.
+    fees_data: either (sku_map, asin_map) tuple from load_fees(), or a plain dict (legacy).
     Sheets: DEALS PLANNER, PEAK CALENDAR
     """
+    # Unpack fees_data — support both new tuple form and legacy dict form
+    if isinstance(fees_data, tuple):
+        sku_map, asin_map = fees_data
+    else:
+        sku_map  = fees_data  # legacy: plain dict
+        asin_map = {}
+
     wb = Workbook()
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -382,10 +425,12 @@ def create_workbook(brand_name, recommendations, fees_map):
         sp       = rec["seller_price"]
         dp       = rec["deal_price"]
         units    = rec["committed_units"]
-        amz_fee  = fees_map.get(sku, 0.0)
+        amz_fee, fee_src = lookup_fee(sku, rec["deal_asin"], sku_map, asin_map)
         rate     = var_fee_rate(schedule)
+        fee_missing = (fee_src == "missing")
 
         row_bg = ALT if i % 2 == 0 else WHT
+        fee_bg = RED_L if fee_missing else row_bg   # highlight rows with no fee data
 
         def wc(col_i, value, fmt=None, bold=False, bg_ov=None, align="center", italic=False):
             c = ws.cell(r, col_i, value)
@@ -407,16 +452,22 @@ def create_workbook(brand_name, recommendations, fees_map):
         wc(6,  dp,                  "$#,##0.00")
         wc(7,  f"=IFERROR((E{r}-F{r})/E{r},0)", "0%")
         wc(8,  units,               "#,##0")
-        wc(9,  f"=F{r}*H{r}",      "$#,##0.00")                         # Deal Revenue
-        wc(10, amz_fee if amz_fee > 0 else 0, "$#,##0.00")              # Est. Amazon Fee/Unit
-        wc(11, f"=F{r}*{rate}",    "$#,##0.00")                         # Deal Var Fee/Unit
-        wc(12, f"=J{r}+K{r}",      "$#,##0.00")                         # Total Fees/Unit
-        wc(13, f"=L{r}*H{r}",      "$#,##0.00")                         # Total Fees
-        wc(14, "",                  "$#,##0.00", bg_ov=YEL)             # COGS/Unit (user fills)
-        wc(15, f"=IF(N{r}>0,N{r}*H{r},0)", "$#,##0.00", bg_ov=YEL)    # Total COGS
+        wc(9,  f"=F{r}*H{r}",      "$#,##0.00")                          # Deal Revenue
+        # Est. Amazon Fee/Unit — red background if fee data not found
+        c10 = wc(10, amz_fee, "$#,##0.00", bg_ov=fee_bg)                # Est. Amazon Fee/Unit
+        if fee_missing:
+            c10.font = Font(name=FONT_NAME, size=9, italic=True, color="CC0000")
+        elif fee_src == "asin":
+            # Matched via ASIN fallback — note in italic
+            c10.font = Font(name=FONT_NAME, size=9, italic=True, color="595959")
+        wc(11, f"=F{r}*{rate}",    "$#,##0.00")                          # Deal Var Fee/Unit
+        wc(12, f"=J{r}+K{r}",      "$#,##0.00")                          # Total Fees/Unit
+        wc(13, f"=L{r}*H{r}",      "$#,##0.00")                          # Total Fees
+        wc(14, "",                  "$#,##0.00", bg_ov=YEL)              # COGS/Unit (user fills)
+        wc(15, f"=IF(N{r}>0,N{r}*H{r},0)", "$#,##0.00", bg_ov=YEL)     # Total COGS
         wc(16, f"=I{r}-M{r}-O{r}", "$#,##0.00", bg_ov=GRN,
-           bold=True)                                                     # SKU Profit*
-        wc(17, f"=IFERROR(P{r}/I{r},0)", "0.0%", bg_ov=GRN)            # Margin*
+           bold=True)                                                      # SKU Profit*
+        wc(17, f"=IFERROR(P{r}/I{r},0)", "0.0%", bg_ov=GRN)             # Margin*
 
         ws.row_dimensions[r].height = 20
         row += 1
@@ -426,6 +477,24 @@ def create_workbook(brand_name, recommendations, fees_map):
     # ── Gap before summary ────────────────────────────────────────────────
     row += 1
     SUMMARY_TITLE_ROW = row
+
+    # ── Missing-fee warning row ───────────────────────────────────────────
+    missing_skus = [
+        rec["sku"] for rec in ordered_recs
+        if lookup_fee(rec["sku"], rec["deal_asin"], sku_map, asin_map)[1] == "missing"
+    ]
+    if missing_skus:
+        ws.merge_cells(f"A{row}:{last_col}{row}")
+        c = ws.cell(row, 1,
+            f"⚠️  {len(missing_skus)} SKU(s) have no fee data in your Fee Preview file: "
+            f"{', '.join(missing_skus[:6])}{'…' if len(missing_skus) > 6 else ''}  "
+            f"— Download a complete Fee Preview from Seller Central → Reports → Fulfillment → Fee Preview "
+            f"and re-generate for accurate totals. Rows highlighted in red above.")
+        c.font      = Font(name=FONT_NAME, bold=True, color="7F0000", size=9)
+        c.fill      = fill("FFE0E0")
+        c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True, indent=1)
+        ws.row_dimensions[row].height = 30
+        row += 1
 
     # ── DEAL SUMMARY title bar ────────────────────────────────────────────
     ws.merge_cells(f"A{row}:{last_col}{row}")
@@ -481,7 +550,7 @@ def create_workbook(brand_name, recommendations, fees_map):
         grp_revenue   = sum(r["deal_price"] * r["committed_units"] for r in group)
         grp_raw_var   = sum(r["deal_price"] * r["committed_units"] * rate for r in group)
         grp_var_capped = min(grp_raw_var, cap)
-        grp_amz_fees  = sum(fees_map.get(r["sku"], 0.0) * r["committed_units"] for r in group)
+        grp_amz_fees  = sum(lookup_fee(r["sku"], r["deal_asin"], sku_map, asin_map)[0] * r["committed_units"] for r in group)
 
         # Group header row
         period_tag = "🔥 PRIME DAY" if prime else "📅 Non-Peak"
@@ -572,7 +641,7 @@ def create_workbook(brand_name, recommendations, fees_map):
     }
     total_capped_var = sum(min(v, var_fee_cap(rec_groups[rid][0]["schedule"]))
                            for rid, v in all_raw_var.items())
-    total_amz        = sum(fees_map.get(r["sku"], 0.0) * r["committed_units"] for r in ordered_recs)
+    total_amz        = sum(lookup_fee(r["sku"], r["deal_asin"], sku_map, asin_map)[0] * r["committed_units"] for r in ordered_recs)
     grand_ex_cogs    = total_revenue - total_upfront - total_capped_var - total_amz
 
     def g_row(label, value, fmt="$#,##0.00", note="", bold=False, bg=GRY):
@@ -779,13 +848,12 @@ def main():
         print("❌  No recommendations found. Check the file and sheet name.")
         sys.exit(1)
 
-    fees_map = {}
+    fees_data = ({}, {})
     if args.fees:
         print("  Loading fee preview...")
-        fees_map = load_fees(args.fees)
-        print(f"  Fees loaded: {len(fees_map)} SKUs")
+        fees_data = load_fees(args.fees)
 
-    wb = create_workbook(args.brand, recs, fees_map)
+    wb = create_workbook(args.brand, recs, fees_data)
     wb.save(args.output)
     print(f"\n  ✅  Saved: {args.output}\n")
 

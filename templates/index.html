@@ -521,6 +521,21 @@
     .paypal-logo { font-size: 19px; font-weight: 900; letter-spacing: -0.5px; }
     .paypal-logo .pay { color: #009cde; }
     .paypal-logo .pal { color: #012169; }
+    .btn-kofi {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #FF5E5B;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 15px 36px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-kofi:hover { background: #e04a47; transform: translateY(-1px); }
+    .donate-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
     .donate-note { font-size: 12px; color: var(--muted); margin-top: 16px; }
 
     /* ── CONTACT SECTION ── */
@@ -609,7 +624,7 @@
 <nav>
   <div class="nav-logo">Amazon<span> Deals Planner</span></div>
   <div class="nav-right">
-    <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener" class="nav-donate">☕ Buy me a coffee</a>
+    <a href="https://ko-fi.com/jayhero" target="_blank" rel="noopener" class="nav-donate">☕ Buy me a coffee</a>
     <a href="#tool" class="nav-cta">Get It Free →</a>
   </div>
 </nav>
@@ -618,7 +633,7 @@
 <section class="hero">
   <div class="hero-badge">Free Tool for Amazon FBA Sellers</div>
   <h1>Stop Guessing Your<br><span class="accent">Amazon Deal Fees.</span></h1>
-  <p class="hero-sub">Upload your Amazon Deals Recommendation Template and get an instant, accurate planner — showing deal type, correct fee math, estimated profit, and margin for every Amazon-recommended deal.</p>
+  <p class="hero-sub">Upload your Amazon Deals Recommendation Template + Fee Preview and get an instant, accurate planner — showing deal type, referral fees, FBA fees, estimated profit, and margin for every Amazon-recommended deal.</p>
   <div class="hero-actions">
     <a href="#tool" class="btn-primary">Generate My Free Planner →</a>
     <a href="#how-it-works" class="btn-ghost">See How It Works</a>
@@ -670,7 +685,7 @@
     <div class="step">
       <div class="step-num">1</div>
       <h3>Export from Seller Central</h3>
-      <p>Download your <strong>Deals Recommendation Template</strong> from Seller Central → Deals → Manage Deals → Bulk Upload. Optionally add your <strong>Fee Preview CSV</strong> for accurate fee projections.</p>
+      <p>Download your <strong>Deals Recommendation Template</strong> (.xlsx) from Seller Central → Deals → Manage Deals → Bulk Upload, and your <strong>Fee Preview CSV</strong> from Seller Central → Reports → Fulfillment. Both are required for accurate projections.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
@@ -821,10 +836,10 @@
           </div>
           <div class="upload-box" id="feesBox">
             <div class="upload-icon">💰</div>
-            <h4>Fee Preview CSV <em>(optional but recommended)</em></h4>
+            <h4>Fee Preview CSV *</h4>
             <p>Seller Central → Reports → Fulfillment → Fee Preview → Download<br/>
-            Adds referral + FBA fulfillment fees per SKU for accurate profit projections.</p>
-            <input type="file" id="fees" name="fees" accept=".csv,.txt" />
+            <strong>Required</strong> — provides referral + FBA fulfillment fees per SKU for accurate revenue and profit projections.</p>
+            <input type="file" id="fees" name="fees" accept=".csv,.txt" required />
             <label for="fees" class="upload-btn">Choose File</label>
             <span class="file-name" id="feesName">No file selected</span>
           </div>
@@ -851,10 +866,15 @@
     <div class="donate-icon">☕</div>
     <h2>This tool is free — and always will be.</h2>
     <p>If it saved you time or helped you run a profitable deal, consider buying me a coffee. It helps keep the server running and the tool improving.</p>
-    <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener" class="btn-donate">
-      <span class="paypal-logo"><span class="pay">Pay</span><span class="pal">Pal</span></span>
-      Donate via PayPal
-    </a>
+    <div class="donate-buttons">
+      <a href="https://paypal.me/JheroMangubat" target="_blank" rel="noopener" class="btn-donate">
+        <span class="paypal-logo"><span class="pay">Pay</span><span class="pal">Pal</span></span>
+        Donate via PayPal
+      </a>
+      <a href="https://ko-fi.com/jayhero" target="_blank" rel="noopener" class="btn-kofi">
+        ☕ Buy me a Ko-fi
+      </a>
+    </div>
     <p class="donate-note">Any amount is appreciated. No pressure. 🙏</p>
   </div>
 </section>
@@ -878,7 +898,7 @@
     </div>
     <div class="faq-item">
       <h4>What files do I need?</h4>
-      <p>The <strong>Deals Recommendation Template</strong> (Excel .xlsx) is the main file — Amazon pre-fills it with your recommended deals. Get it from Seller Central → Deals → Manage Deals → Bulk Upload. Optionally add your <strong>Fee Preview CSV</strong> (Seller Central → Reports → Fulfillment → Fee Preview) for referral + FBA fee accuracy.</p>
+      <p>Two files from Seller Central: (1) your <strong>Deals Recommendation Template</strong> (.xlsx) — from Seller Central → Deals → Manage Deals → Bulk Upload. Amazon pre-fills this with your recommended deals. (2) your <strong>Fee Preview CSV</strong> — from Seller Central → Reports → Fulfillment → Fee Preview. This is required because it contains the referral and FBA fulfillment fees per SKU needed for an accurate profit picture.</p>
     </div>
     <div class="faq-item">
       <h4>What does the tool actually calculate?</h4>

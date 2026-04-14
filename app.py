@@ -133,6 +133,9 @@ def generate():
         if not deals_file:
             return "Deals Recommendation Template (.xlsx) is required", 400
 
+        if not fees_file or not fees_file.filename:
+            return "Fee Preview CSV is required for accurate referral and fulfillment fee calculations", 400
+
         # Save uploads to Supabase storage
         save_upload(deals_file, email, brand, "deals_recommendations", ext="xlsx")
         if fees_file and fees_file.filename:
@@ -153,7 +156,7 @@ def generate():
 
         # Process
         recommendations = load_deal_recommendations(deals_path)
-        fees_map = load_fees(fees_path) if fees_path else {}
+        fees_map = load_fees(fees_path) if fees_path else ({}, {})
 
         if not recommendations:
             os.unlink(deals_path)
@@ -180,7 +183,7 @@ def generate():
             "marketplace": marketplace,
             "num_skus": num_skus,
             "num_products": len(recommendations),
-            "num_fees": len(fees_map),
+            "num_fees": len(fees_map[0]) if isinstance(fees_map, tuple) else len(fees_map),
         })
 
         # Clean up temp files
