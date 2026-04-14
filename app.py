@@ -107,15 +107,17 @@ def save_upload(file_obj, email, brand, file_type, ext="xlsx"):
 
 
 # ── Redirect (Render → Vercel migration) ──────────────────────────────────
-# All traffic is permanently redirected to the Vercel deployment.
-VERCEL_URL = "https://amazon-deals-planner.vercel.app"
+# Only redirect on Render (RENDER env var is set automatically by Render).
+# On Vercel this block is skipped so the app loads normally.
+if os.environ.get("RENDER"):
+    VERCEL_URL = "https://amazon-deals-planner.vercel.app"
 
-@app.before_request
-def redirect_to_vercel():
-    path = request.path
-    qs   = request.query_string.decode("utf-8")
-    target = VERCEL_URL + path + ("?" + qs if qs else "")
-    return redirect(target, code=301)
+    @app.before_request
+    def redirect_to_vercel():
+        path = request.path
+        qs   = request.query_string.decode("utf-8")
+        target = VERCEL_URL + path + ("?" + qs if qs else "")
+        return redirect(target, code=301)
 
 # ── Routes ──
 
