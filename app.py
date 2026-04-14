@@ -13,7 +13,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, redirect
 from werkzeug.utils import secure_filename
 
 # Planner generator
@@ -111,14 +111,12 @@ def save_upload(file_obj, email, brand, file_type, ext="xlsx"):
 # All requests will 301 to the equivalent path on the new host.
 # Leave unset on Vercel so the app runs normally there.
 
-REDIRECT_TO = os.environ.get("REDIRECT_TO", "").rstrip("/")
-
-if REDIRECT_TO:
-    @app.before_request
-    def redirect_to_new_host():
-        target = REDIRECT_TO + request.full_path.rstrip("?")
-        from flask import redirect as flask_redirect
-        return flask_redirect(target, code=301)
+@app.before_request
+def redirect_to_new_host():
+    target_host = os.environ.get("REDIRECT_TO", "").rstrip("/")
+    if target_host:
+        target = target_host + request.full_path.rstrip("?")
+        return redirect(target, code=301)
 
 # ── Routes ──
 
