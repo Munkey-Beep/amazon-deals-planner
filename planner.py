@@ -636,11 +636,13 @@ def create_workbook(brand_name, recommendations, fees_data):
         # Group sub-profit — formula referencing the summary value cells above
         # summary rows were written at: row-6 (revenue), row-5 (upfront), row-4 (var),
         # row-3 (amz), row-2 (cogs), so profit = revenue - upfront - var - amz - cogs
-        rev_row    = row - 6
-        upfr_row   = row - 5
-        var_row    = row - 4
-        amz_row    = row - 3
-        cogs_row   = row - 2
+        # Layout: header(row-6) → revenue(row-5) → upfront(row-4) →
+        #         var(row-3) → amz(row-2) → cogs(row-1) → profit(row)
+        rev_row    = row - 5
+        upfr_row   = row - 4
+        var_row    = row - 3
+        amz_row    = row - 2
+        cogs_row   = row - 1
         grp_profit_formula = (
             f"=F{rev_row}-F{upfr_row}-F{var_row}-F{amz_row}-F{cogs_row}"
         )
