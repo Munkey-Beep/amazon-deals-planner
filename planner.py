@@ -276,6 +276,12 @@ def is_prime_day(schedule):
     return bool(schedule and "prime day" in str(schedule).lower())
 
 
+def is_coupon(deal_type):
+    return bool(deal_type and any(
+        k in str(deal_type).lower() for k in ("coupon", "voucher")
+    ))
+
+
 def parse_days_from_schedule(schedule):
     """Extract duration in days from 'Mon (2026-04-20 - 2026-04-26)' patterns."""
     if not schedule:
@@ -291,8 +297,15 @@ def parse_days_from_schedule(schedule):
     return 7
 
 
-def compute_upfront_fee(deal_type, schedule):
-    """One-time upfront fee per deal submission."""
+def compute_upfront_fee(deal_type, schedule, total_units=0):
+    """One-time upfront fee per deal submission.
+    Coupons/Vouchers: $2 per voucher created (pass total_units).
+    Lightning Deal: $70 flat.
+    Best Deal: $70/day.
+    Prime Day (LD or BD): $100 flat.
+    """
+    if is_coupon(deal_type):
+        return 2.0 * total_units   # $2 per voucher created
     if is_prime_day(schedule):
         return 100.0
     if deal_type == "Lightning Deal":
@@ -302,11 +315,17 @@ def compute_upfront_fee(deal_type, schedule):
         return 70.0 * days
 
 
-def var_fee_rate(schedule):
+def var_fee_rate(deal_type, schedule):
+    """Variable fee rate: 0.75% for Coupons, 1.5% Prime Day, 1% Non-Peak."""
+    if is_coupon(deal_type):
+        return 0.0075
     return 0.015 if is_prime_day(schedule) else 0.01
 
 
-def var_fee_cap(schedule):
+def var_fee_cap(deal_type, schedule):
+    """Variable fee cap: no cap for Coupons, $5K Prime Day, $2K Non-Peak."""
+    if is_coupon(deal_type):
+        return float("inf")   # Coupons have no variable fee cap
     return 5000.0 if is_prime_day(schedule) else 2000.0
 
 
@@ -425,9 +444,10 @@ def create_workbook(brand_name, recommendations, fees_data):
     group_cap_hit         = {}   # rid -> bool
     for rid in rec_order:
         group   = rec_groups[rid]
+        dtype   = group[0]["deal_type"]
         sched   = group[0]["schedule"]
-        raw_rate = var_fee_rate(sched)
-        cap      = var_fee_cap(sched)
+        raw_rate = var_fee_rate(dtype, sched)
+        cap      = var_fee_cap(dtype, sched)
         grp_rev  = sum(r["deal_price"] * r["committed_units"] for r in group)
         raw_var  = grp_rev * raw_rate
         if grp_rev > 0 and raw_var > cap:
@@ -573,9 +593,11 @@ def create_workbook(brand_name, recommendations, fees_data):
         sched   = first["schedule"]
         dtype   = first["deal_type"]
         prime   = is_prime_day(sched)
-        raw_rate = var_fee_rate(sched)
-        cap     = var_fee_cap(sched)
-        upfront = compute_upfront_fee(dtype, sched)
+        coupon  = is_coupon(dtype)
+        raw_rate = var_fee_rate(dtype, sched)
+        cap     = var_fee_cap(dtype, sched)
+        grp_total_units = sum(r["committed_units"] for r in group)
+        upfront = compute_upfront_fee(dtype, sched, total_units=grp_total_units)
 
         # Row numbers in the DEALS PLANNER sheet for this group's SKUs
         grp_rows = [data_row_map[(r["sku"], rid)] for r in group]
@@ -591,8 +613,8 @@ def create_workbook(brand_name, recommendations, fees_data):
         grp_var_capped = min(grp_raw_var, cap)
 
         # Group header row
-        period_tag = "🔥 PRIME DAY" if prime else "📅 Non-Peak"
-        bg_grp = ORG if prime else LT_BLUE
+        period_tag = "🎫 COUPON/VOUCHER" if coupon else ("🔥 PRIME DAY" if prime else "📅 Non-Peak")
+        bg_grp = "E8D5F0" if coupon else (ORG if prime else LT_BLUE)  # purple tint for coupons
 
         ws.merge_cells(f"A{row}:{last_col}{row}")
         c = ws.cell(row, 1,
@@ -606,19 +628,26 @@ def create_workbook(brand_name, recommendations, fees_data):
         s_row("Deal Revenue", rev_formula, bg=GRY, note=f"{len(group)} SKU(s)")
         row += 1
 
-        upfront_note = (
-            "$100 flat — Prime Day" if prime else
-            (f"$70 flat — Lightning Deal (single slot)" if dtype == "Lightning Deal"
-             else f"${upfront:,.0f}  =  {parse_days_from_schedule(sched)} days × $70/day")
-        )
+        if coupon:
+            upfront_note = (
+                f"$2/voucher × {grp_total_units:,} units = ${upfront:,.2f}"
+            )
+        elif prime:
+            upfront_note = "$100 flat — Prime Day"
+        elif dtype == "Lightning Deal":
+            upfront_note = "$70 flat — Lightning Deal (single slot)"
+        else:
+            upfront_note = f"${upfront:,.0f}  =  {parse_days_from_schedule(sched)} days × $70/day"
+
         s_row("(Less)  Upfront Fee — ONE-TIME per deal", upfront,
               note=upfront_note, bg=RED_L)
         row += 1
 
+        cap_display = "No cap" if cap == float("inf") else f"Cap ${cap:,.0f}"
         var_note = (
-            f"{raw_rate*100:.1f}% of deal price  |  "
-            f"Cap ${cap:,.0f}"
-            + (f"  |  Raw ${grp_raw_var:,.2f}  ✓ CAPPED" if grp_raw_var > cap else "")
+            f"{raw_rate*100:.2f}% of sales  |  "
+            f"{cap_display}"
+            + (f"  |  Raw ${grp_raw_var:,.2f}  ✓ CAPPED" if grp_raw_var < float("inf") and grp_raw_var > cap else "")
         )
         s_row("(Less)  Variable Deal Fees (capped)", var_formula,
               note=var_note, bg=RED_L)
@@ -679,7 +708,11 @@ def create_workbook(brand_name, recommendations, fees_data):
 
     # Grand Totals — upfront fee is the only Python-only value (no column for it in rows)
     total_upfront = sum(
-        compute_upfront_fee(rec_groups[rid][0]["deal_type"], rec_groups[rid][0]["schedule"])
+        compute_upfront_fee(
+            rec_groups[rid][0]["deal_type"],
+            rec_groups[rid][0]["schedule"],
+            total_units=sum(r["committed_units"] for r in rec_groups[rid])
+        )
         for rid in rec_order
     )
 
@@ -791,6 +824,7 @@ def create_workbook(brand_name, recommendations, fees_data):
         "ℹ️  HOW IT WORKS:  All deals are sourced from Amazon's Deals Recommendation Template (Amazon-vetted). "
         "Upfront fee = one charge per deal group submission (not per SKU). "
         "Variable fee = Deal Price × rate per unit (1% Non-Peak / 1.5% Prime Day), capped at $2,000 or $5,000 per group. "
+        "Coupons/Vouchers: $2 upfront per voucher created + 0.75% variable fee on sales (no cap). "
         "Est. Amazon Fee = referral + FBA fulfillment combined (from Fee Preview). "
         "COGS/Unit is optional — fill yellow column N to see true net profit.")
     c.font      = Font(name=FONT_NAME, italic=True, color="595959", size=8)
